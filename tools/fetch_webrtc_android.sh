@@ -9,7 +9,9 @@ path="$LIBS/$name"
 if [[ ! -f "$path" || "$(sha256sum "$path" | awk '{print $1}')" != "$expected" ]]; then
   tmp="$path.tmp"
   rm -f "$tmp"
-  curl -fsSL -o "$tmp" \
+  # The release host can transiently return 5xx/504 during CI; retry the
+  # download but still verify the pinned SHA-256 before accepting the artifact.
+  curl -fsSL --retry 5 --retry-all-errors --retry-delay 2 --retry-max-time 120 -o "$tmp" \
     "https://github.com/GroupHalla/Halla-WebRTC-Builds/releases/download/android-v0.1.1/$name"
   actual="$(sha256sum "$tmp" | awk '{print $1}')"
   [[ "$actual" == "$expected" ]] || { echo "WebRTC Android checksum mismatch: $actual" >&2; rm -f "$tmp"; exit 1; }
