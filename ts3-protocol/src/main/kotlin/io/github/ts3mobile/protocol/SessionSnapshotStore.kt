@@ -14,6 +14,10 @@ internal class SessionSnapshotStore {
         channels[channel.id] = channel
     }
 
+    fun putChannels(values: Iterable<Ts3Channel>) = synchronized(lock) {
+        values.forEach { channels[it.id] = it }
+    }
+
     fun updateChannel(id: Int, transform: (Ts3Channel) -> Ts3Channel) = synchronized(lock) {
         channels[id]?.let { channels[id] = transform(it) }
     }
@@ -24,6 +28,10 @@ internal class SessionSnapshotStore {
 
     fun putParticipant(participant: Ts3Participant) = synchronized(lock) {
         participants[participant.id] = participant
+    }
+
+    fun putParticipants(values: Iterable<Ts3Participant>) = synchronized(lock) {
+        values.forEach { participants[it.id] = it }
     }
 
     fun updateParticipant(id: Int, transform: (Ts3Participant) -> Ts3Participant) = synchronized(lock) {
