@@ -41,12 +41,12 @@ fun checkForUpdatesSilently() {
 
     thread {
         try {
-            val url = URL("https://api.github.com/repos/GroupHalla/Halla-Mobile/releases/latest")
+            val url = URL("https://api.github.com/repos/32Amir-Khan32/TS3-GasMobile/releases/latest")
             val conn = url.openConnection() as HttpURLConnection
             conn.requestMethod = "GET"
             conn.connectTimeout = 3000
             conn.readTimeout = 3000
-            conn.setRequestProperty("User-Agent", "Halla-Mobile-Updater")
+            conn.setRequestProperty("User-Agent", "TS3-GasMObile-Updater")
 
             if (conn.responseCode == 200) {
                 val reader = BufferedReader(InputStreamReader(conn.inputStream))
@@ -79,11 +79,11 @@ fun checkUpdatesFromSettings() {
     Toast.makeText(activity, activity.getString(R.string.check_updates), Toast.LENGTH_SHORT).show()
     thread {
         try {
-            val url = URL("https://api.github.com/repos/GroupHalla/Halla-Mobile/releases/latest")
+            val url = URL("https://api.github.com/repos/32Amir-Khan32/TS3-GasMobile/releases/latest")
             val conn = url.openConnection() as HttpURLConnection
             conn.requestMethod = "GET"
             conn.connectTimeout = 3000
-            conn.setRequestProperty("User-Agent", "Halla-Mobile-Updater")
+            conn.setRequestProperty("User-Agent", "TS3-GasMObile-Updater")
 
             if (conn.responseCode == 200) {
                 val reader = BufferedReader(InputStreamReader(conn.inputStream))
@@ -154,7 +154,7 @@ private fun fetchExpectedSha256(checksumUrl: String): String {
         requestMethod = "GET"
         connectTimeout = 10000
         readTimeout = 15000
-        setRequestProperty("User-Agent", "Halla-Mobile-Updater")
+        setRequestProperty("User-Agent", "TS3-GasMObile-Updater")
     }
     conn.inputStream.bufferedReader().use { reader ->
         val text = reader.readText().trim()
@@ -255,7 +255,7 @@ private fun downloadAndInstallUpdate(url: String, checksumUrl: String, version: 
                 requestMethod = "GET"
                 connectTimeout = 10000
                 readTimeout = 30000
-                setRequestProperty("User-Agent", "Halla-Mobile-Updater")
+                setRequestProperty("User-Agent", "TS3-GasMObile-Updater")
             }
             if (connection.responseCode !in 200..299) {
                 throw IllegalStateException("HTTP ${connection.responseCode}")
