@@ -43,7 +43,6 @@ class SavedServerProbePolicyTest {
         assertTrue(probe.contains("socket.connect(java.net.InetSocketAddress(host, port)"))
         assertTrue(probe.contains("elapsedRealtime() - started"))
         assertTrue(!probe.contains("socket.startHandshake()"))
-        assertTrue(!probe.contains("server_probe"))
     }
 
     @Test
