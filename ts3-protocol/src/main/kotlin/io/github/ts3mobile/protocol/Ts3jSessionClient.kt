@@ -348,8 +348,8 @@ class Ts3jSessionClient : Ts3SessionClient {
                 serverName = info["virtualserver_name"].orEmpty().ts3Unescape(),
                 serverMotd = info["virtualserver_welcomemessage"].orEmpty().ts3Unescape(),
                 maxClients = info["virtualserver_maxclients"]?.toIntOrNull()?.takeIf { it > 0 } ?: 32,
-                clientsOnline = info["virtualserver_clientsonline"]?.toIntOrNull()
-                    ?: snapshotStore.snapshot().participants.size,
+                // Server info is a connection-time snapshot; roster events are live.
+                clientsOnline = snapshotStore.snapshot().participants.size,
                 uptimeSeconds = info["virtualserver_uptime"]?.toLongOrNull() ?: 0L,
                 serverVersion = info["virtualserver_version"].orEmpty().ts3Unescape(),
                 serverPlatform = info["virtualserver_platform"].orEmpty().ts3Unescape(),
