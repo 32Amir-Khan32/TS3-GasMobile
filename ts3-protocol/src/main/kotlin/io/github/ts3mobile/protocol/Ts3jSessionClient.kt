@@ -361,15 +361,15 @@ class Ts3jSessionClient : Ts3SessionClient {
         val result = StringBuilder(length)
         var index = 0
         while (index < length) {
-            if (this[index] == '\\\\' && index + 1 < length) {
+            if (this[index] == '\\' && index + 1 < length) {
                 when (this[index + 1]) {
                     's' -> result.append(' ')
                     'p' -> result.append('|')
                     '/' -> result.append('/')
-                    '\\\\' -> result.append('\\\\')
-                    'n' -> result.append('\\n')
-                    'r' -> result.append('\\r')
-                    't' -> result.append('\\t')
+                    '\\' -> result.append('\\')
+                    'n' -> result.append('\n')
+                    'r' -> result.append('\r')
+                    't' -> result.append('\t')
                     else -> result.append(this[index]).append(this[index + 1])
                 }
                 index += 2
