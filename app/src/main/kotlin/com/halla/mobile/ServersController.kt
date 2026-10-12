@@ -646,6 +646,7 @@ class ServersController(private val activity: MainActivity) {
             .put("selfId", selfId).put("channels", channels).put("users", users)
             .put("myPerms", JSONObject()).put("groups", JSONArray())
             .put("server", server)
+        activity.activeTs3ServerInfo = JSONObject(server.toString())
         snapshot.serverName.takeIf { it.isNotBlank() }?.let { activity.txtActiveServerName.text = it }
         activity.txtActiveMotd.text = snapshot.serverMotd
         activity.onWelcomeReceived(welcome.toString())
