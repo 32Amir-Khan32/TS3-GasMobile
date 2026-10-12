@@ -25,6 +25,10 @@ class OpusMicrophoneCapture(
 ) : EncodedVoiceSource, AutoCloseable {
     private val applicationContext = context.applicationContext
     private val encodedFrames = ArrayBlockingQueue<ByteArray>(ENCODED_QUEUE_CAPACITY)
+
+    @Volatile var transmissionEnabled: Boolean = true
+    @Volatile var voiceActivationEnabled: Boolean = false
+    @Volatile var voiceActivationThreshold: Double = 650.0
     private val lifecycleLock = Any()
     private val encodedFrameCount = AtomicLong(0L)
     private val providedFrameCount = AtomicLong(0L)
@@ -165,11 +169,14 @@ class OpusMicrophoneCapture(
 
     override fun isReady(): Boolean = encodedFrames.isNotEmpty()
 
-    override fun pollEncodedFrame(): ByteArray? = encodedFrames.poll()?.also { frame ->
+    override fun pollEncodedFrame(): ByteArray? {
+        if (!transmissionEnabled) return null
+        return encodedFrames.poll()?.also { frame ->
         val provided = providedFrameCount.incrementAndGet()
         if (provided == 1L) {
             System.err.println("TS3_AUDIO: provided first microphone Opus frame (${frame.size} bytes)")
         }
+    }
     }
 
     override fun close() = stop()
@@ -192,6 +199,7 @@ class OpusMicrophoneCapture(
         var inputEnergy = 0.0
         var outputEnergy = 0.0
         var measuredSamples = 0L
+        var lastVoiceDetectedNanos = 0L
         try {
             Process.setThreadPriority(Process.THREAD_PRIORITY_AUDIO)
             while (captureControl.running.get()) {
@@ -234,6 +242,17 @@ class OpusMicrophoneCapture(
                 denoiserOffset = 0
                 if (opusOffset < opusPcm.size) continue
 
+                if (voiceActivationEnabled) {
+                    val rms = sqrt(opusPcm.sumOf { sample ->
+                        sample.toDouble() * sample.toDouble()
+                    } / opusPcm.size)
+                    val now = System.nanoTime()
+                    if (rms >= voiceActivationThreshold) lastVoiceDetectedNanos = now
+                    if (now - lastVoiceDetectedNanos > VOICE_ACTIVATION_HOLD_NANOS) {
+                        opusOffset = 0
+                        continue
+                    }
+                }
                 val encoded = encoder.encode(opusPcm)
                 if (!encodedFrames.offer(encoded)) {
                     encodedFrames.poll()

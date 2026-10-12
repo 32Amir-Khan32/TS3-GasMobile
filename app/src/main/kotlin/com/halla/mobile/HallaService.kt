@@ -152,6 +152,10 @@ class HallaService : Service(), HallaCore.Callbacks {
         fun isScreenSharing(): Boolean = screenSharing
 
         fun setMicMuted(context: Context, muted: Boolean) {
+            if (Ts3ConnectionManager.isConnected()) {
+                Ts3ConnectionManager.setMicMuted(muted)
+                return
+            }
             context.startService(Intent(context, HallaService::class.java).apply {
                 action = ACTION_MUTE_MIC
                 putExtra(EXTRA_ENABLED, muted)
@@ -159,6 +163,10 @@ class HallaService : Service(), HallaCore.Callbacks {
         }
 
         fun setSpeakersMuted(context: Context, muted: Boolean) {
+            if (Ts3ConnectionManager.isConnected()) {
+                Ts3ConnectionManager.setSpeakersMuted(muted)
+                return
+            }
             context.startService(Intent(context, HallaService::class.java).apply {
                 action = ACTION_MUTE_SPEAKERS
                 putExtra(EXTRA_ENABLED, muted)
@@ -166,6 +174,10 @@ class HallaService : Service(), HallaCore.Callbacks {
         }
 
         fun setPtt(context: Context, pressed: Boolean) {
+            if (Ts3ConnectionManager.isConnected()) {
+                Ts3ConnectionManager.setPtt(pressed)
+                return
+            }
             context.startService(Intent(context, HallaService::class.java).apply {
                 action = ACTION_SET_PTT
                 putExtra(EXTRA_PRESSED, pressed)
@@ -205,6 +217,12 @@ class HallaService : Service(), HallaCore.Callbacks {
         }
 
         fun setTransmissionMode(context: Context, mode: Int) {
+            if (Ts3ConnectionManager.isConnected()) {
+                Ts3ConnectionManager.setTransmissionMode(mode)
+                context.getSharedPreferences("HallaSettings", Context.MODE_PRIVATE).edit()
+                    .putInt("transmission_mode", mode.coerceIn(0, 2)).apply()
+                return
+            }
             context.startService(Intent(context, HallaService::class.java).apply {
                 action = ACTION_SET_TRANSMISSION_MODE
                 putExtra(EXTRA_MODE, mode)

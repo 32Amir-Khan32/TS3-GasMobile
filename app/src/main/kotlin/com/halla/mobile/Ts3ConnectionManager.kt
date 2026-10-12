@@ -22,6 +22,8 @@ object Ts3ConnectionManager {
     @Volatile private var audioPlayer: OpusAudioPlayer? = null
     @Volatile private var microphoneMuted = false
     @Volatile private var speakersMuted = false
+    @Volatile private var transmissionMode = 0
+    @Volatile private var pttPressed = false
     fun isConnected(): Boolean = connected
 
     fun connect(
@@ -46,6 +48,13 @@ object Ts3ConnectionManager {
         }
         thread(name = "ts3-connect") {
             try {
+                val prefs = appContext.getSharedPreferences("HallaSettings", Context.MODE_PRIVATE)
+                transmissionMode = prefs.getInt("transmission_mode", 0).coerceIn(0, 2)
+                microphoneMuted = appContext.getSharedPreferences("HallaPrefs", Context.MODE_PRIVATE)
+                    .getBoolean(HallaService.PREF_MIC_MUTED, false)
+                speakersMuted = appContext.getSharedPreferences("HallaPrefs", Context.MODE_PRIVATE)
+                    .getBoolean(HallaService.PREF_SPK_MUTED, false)
+                pttPressed = false
                 val player = OpusAudioPlayer(appContext)
                 player.start()
                 player.setMuted(speakersMuted)
@@ -59,7 +68,9 @@ object Ts3ConnectionManager {
                     null
                 }
                 microphone = mic
-                client.setVoiceSource(if (microphoneMuted) null else mic)
+                mic?.voiceActivationEnabled = transmissionMode == 0
+                updateMicrophoneGate()
+                client.setVoiceSource(mic)
                 val key = "ts3-identity-material"
                 var identity = HallaCore.readSecret(appContext, key)
                 if (identity.isBlank()) {
@@ -89,14 +100,32 @@ object Ts3ConnectionManager {
 
     fun joinChannel(channelId: Int, password: String = "") { session?.joinChannel(channelId, password) }
 
+    private fun updateMicrophoneGate() {
+        microphone?.let { mic ->
+            mic.voiceActivationEnabled = transmissionMode == 0
+            mic.transmissionEnabled = !microphoneMuted &&
+                (transmissionMode != 1 || pttPressed)
+        }
+    }
+
     fun setMicMuted(muted: Boolean) {
         microphoneMuted = muted
-        session?.setVoiceSource(if (muted) null else microphone)
+        updateMicrophoneGate()
     }
 
     fun setSpeakersMuted(muted: Boolean) {
         speakersMuted = muted
         audioPlayer?.setMuted(muted)
+    }
+
+    fun setPtt(pressed: Boolean) {
+        pttPressed = pressed
+        updateMicrophoneGate()
+    }
+
+    fun setTransmissionMode(mode: Int) {
+        transmissionMode = mode.coerceIn(0, 2)
+        updateMicrophoneGate()
     }
 
     fun disconnect() {
