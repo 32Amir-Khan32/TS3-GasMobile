@@ -4,6 +4,7 @@
     <string name="empty_servers">No saved servers.
 Tap + to add one.</string>
     <string name="server_default">New Server</string>
+    <string name="server_edit">Edit server</string>
     <string name="server_motd">Welcome to the Halla server!</string>
     <string name="online">🟢 Online</string>
     <string name="channels_voice">VOICE CHANNELS</string>
