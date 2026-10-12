@@ -228,10 +228,10 @@ class Ts3jSessionClient : Ts3SessionClient {
             if (token != generation.get()) return
             listener?.onTextMessage(
                 event.invokerId,
-                event.invokerName,
+                event.invokerName.ts3Unescape(),
                 event.targetMode?.name ?: "CHANNEL",
                 event.targetClientId,
-                event.message.orEmpty(),
+                event.message.orEmpty().ts3Unescape(),
             )
         }
 
@@ -299,7 +299,7 @@ class Ts3jSessionClient : Ts3SessionClient {
                     id = channel.id,
                     parentId = channel.parentChannelId,
                     orderAfterId = channel.order,
-                    name = channel.name,
+                    name = channel.name.ts3Unescape(),
                     clientCount = channel.totalClients,
                     hasPassword = channel.hasPassword(),
                     isDefault = channel.isDefault(),
@@ -317,7 +317,7 @@ class Ts3jSessionClient : Ts3SessionClient {
                     Ts3Participant(
                         id = user.id,
                         channelId = user.channelId,
-                        nickname = user.nickname.orEmpty(),
+                        nickname = user.nickname.orEmpty().ts3Unescape(),
                         isTalking = user.isTalking(),
                         isInputMuted = user.isInputMuted(),
                         isOutputMuted = user.isOutputMuted(),
@@ -357,10 +357,29 @@ class Ts3jSessionClient : Ts3SessionClient {
         )
     }
 
-    private fun String.ts3Unescape(): String = replace("\\s", " ")
-        .replace("\\p", "|")
-        .replace("\\/", "/")
-        .replace("\\\\", "\\")
+    private fun String.ts3Unescape(): String {
+        val result = StringBuilder(length)
+        var index = 0
+        while (index < length) {
+            if (this[index] == '\\\\' && index + 1 < length) {
+                when (this[index + 1]) {
+                    's' -> result.append(' ')
+                    'p' -> result.append('|')
+                    '/' -> result.append('/')
+                    '\\\\' -> result.append('\\\\')
+                    'n' -> result.append('\\n')
+                    'r' -> result.append('\\r')
+                    't' -> result.append('\\t')
+                    else -> result.append(this[index]).append(this[index + 1])
+                }
+                index += 2
+            } else {
+                result.append(this[index])
+                index++
+            }
+        }
+        return result.toString()
+    }
 
     private fun emitStatus(token: Long, status: ConnectionStatus) {
         if (token == generation.get()) listener?.onStatusChanged(status)
@@ -435,7 +454,7 @@ class Ts3jSessionClient : Ts3SessionClient {
         id = id,
         parentId = intValue("pid") ?: intValue("cpid") ?: 0,
         orderAfterId = intValue("channel_order") ?: 0,
-        name = get("channel_name").orEmpty(),
+        name = get("channel_name").orEmpty().ts3Unescape(),
         clientCount = 0,
         hasPassword = booleanValue("channel_flag_password") ?: false,
         isDefault = booleanValue("channel_flag_default") ?: false,
@@ -445,7 +464,7 @@ class Ts3jSessionClient : Ts3SessionClient {
     private fun ClientJoinEvent.toParticipant() = Ts3Participant(
         id = clientId,
         channelId = clientTargetId,
-        nickname = clientNickname,
+        nickname = clientNickname.ts3Unescape(),
         isTalking = isClientTalking,
         isInputMuted = isClientInputMuted,
         isOutputMuted = isClientOutputMuted,
@@ -462,7 +481,7 @@ class Ts3jSessionClient : Ts3SessionClient {
     )
 
     private fun Ts3Participant.withUpdates(values: Map<String, String>) = copy(
-        nickname = values["client_nickname"] ?: nickname,
+        nickname = values["client_nickname"]?.ts3Unescape() ?: nickname,
         uniqueIdentifier = values["client_unique_identifier"] ?: uniqueIdentifier,
         isTalking = values.booleanValue("client_flag_talking")
             ?: values.booleanValue("status")
