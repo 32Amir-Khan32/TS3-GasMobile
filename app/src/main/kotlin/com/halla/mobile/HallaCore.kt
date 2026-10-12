@@ -502,10 +502,18 @@ object HallaCore {
     // v6 E2EE: chat/poke/offline NUNCA saem em claro — o motor cifra e monta
     // o JSON (estes wrappers substituíram os externos de envio direto).
     fun sendChatMessage(text: String) {
+        if (Ts3ConnectionManager.isConnected()) {
+            Ts3ConnectionManager.sendChat("channel", 0, text)
+            return
+        }
         E2eeEngine.trySendChat("channel", 0, text)
     }
 
     fun sendChatMessageScoped(scope: String, toUserId: Int, text: String) {
+        if (Ts3ConnectionManager.isConnected()) {
+            Ts3ConnectionManager.sendChat(scope, toUserId, text)
+            return
+        }
         E2eeEngine.trySendChat(scope, toUserId, text)
     }
 

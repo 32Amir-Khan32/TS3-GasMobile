@@ -24,6 +24,7 @@ object Ts3ConnectionManager {
     @Volatile private var speakersMuted = false
     @Volatile private var transmissionMode = 0
     @Volatile private var pttPressed = false
+    @Volatile private var currentChannelId = 0
     fun isConnected(): Boolean = connected
 
     fun connect(
@@ -33,7 +34,8 @@ object Ts3ConnectionManager {
         nickname: String,
         password: String,
         onStatus: (ConnectionStatus) -> Unit,
-        onSnapshot: (SessionSnapshot) -> Unit
+        onSnapshot: (SessionSnapshot) -> Unit,
+        onChat: (Int, String, String, Int, String) -> Unit = { _, _, _, _, _ -> }
     ) {
         val appContext = context.applicationContext
         val client = Ts3jSessionClient()
@@ -88,7 +90,18 @@ object Ts3ConnectionManager {
                             connected = status.phase == ConnectionPhase.CONNECTED
                             onStatus(status)
                         }
-                        override fun onSnapshotChanged(snapshot: SessionSnapshot) = onSnapshot(snapshot)
+                        override fun onSnapshotChanged(snapshot: SessionSnapshot) {
+                            snapshot.currentChannelId?.let { currentChannelId = it }
+                            onSnapshot(snapshot)
+                        }
+                        override fun onTextMessage(fromUserId: Int, fromName: String, targetMode: String, targetClientId: Int, message: String) {
+                            val scope = when (targetMode.uppercase()) {
+                                "SERVER" -> "server"
+                                "CLIENT" -> "private"
+                                else -> "channel"
+                            }
+                            onChat(fromUserId, fromName, scope, targetClientId, message)
+                        }
                         override fun onVoiceFrame(frame: VoiceFrame) {
                             audioPlayer?.submit(frame)
                         }
@@ -108,6 +121,15 @@ object Ts3ConnectionManager {
     }
 
     fun joinChannel(channelId: Int, password: String = "") { session?.joinChannel(channelId, password) }
+
+    fun sendChat(scope: String, targetClientId: Int, message: String) {
+        val current = session ?: error("Not connected to a TeamSpeak server")
+        when (scope) {
+            "server" -> current.sendServerMessage(message)
+            "private" -> current.sendPrivateMessage(targetClientId, message)
+            else -> current.sendChannelMessage(currentChannelId, message)
+        }
+    }
 
     private fun updateMicrophoneGate() {
         microphone?.let { mic ->

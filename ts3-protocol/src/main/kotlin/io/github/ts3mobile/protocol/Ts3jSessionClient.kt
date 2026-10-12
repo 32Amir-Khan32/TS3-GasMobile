@@ -13,6 +13,7 @@ import com.github.manevolent.ts3j.event.ClientMovedEvent
 import com.github.manevolent.ts3j.event.ClientUpdatedEvent
 import com.github.manevolent.ts3j.event.DisconnectedEvent
 import com.github.manevolent.ts3j.event.TS3Listener
+import com.github.manevolent.ts3j.event.TextMessageEvent
 import com.github.manevolent.ts3j.enums.CodecType
 import com.github.manevolent.ts3j.protocol.packet.PacketBody0Voice
 import com.github.manevolent.ts3j.protocol.packet.PacketBody1VoiceWhisper
@@ -168,6 +169,26 @@ class Ts3jSessionClient : Ts3SessionClient {
         publishSnapshot(generation.get())
     }
 
+    override fun sendChannelMessage(channelId: Int, message: String) {
+        require(channelId > 0) { "Not connected to a valid channel" }
+        val current = socket?.takeIf { it.isConnected }
+            ?: error("Not connected to a TeamSpeak server")
+        current.sendChannelMessage(channelId, message)
+    }
+
+    override fun sendServerMessage(message: String) {
+        val current = socket?.takeIf { it.isConnected }
+            ?: error("Not connected to a TeamSpeak server")
+        current.sendServerMessage(message)
+    }
+
+    override fun sendPrivateMessage(clientId: Int, message: String) {
+        require(clientId > 0) { "Invalid target client ID" }
+        val current = socket?.takeIf { it.isConnected }
+            ?: error("Not connected to a TeamSpeak server")
+        current.sendPrivateMessage(clientId, message)
+    }
+
     override fun close() {
         generation.incrementAndGet()
         val current = socket
@@ -195,6 +216,17 @@ class Ts3jSessionClient : Ts3SessionClient {
                     "Server closed the connection (${event.reasonId})",
                     retryable = event.reasonId !in TERMINAL_DISCONNECT_REASONS,
                 ),
+            )
+        }
+
+        override fun onTextMessage(event: TextMessageEvent) {
+            if (token != generation.get()) return
+            listener?.onTextMessage(
+                event.invokerId,
+                event.invokerName,
+                event.targetMode?.name ?: "CHANNEL",
+                event.targetClientId,
+                event.message.orEmpty(),
             )
         }
 

@@ -585,6 +585,9 @@ class ServersController(private val activity: MainActivity) {
             onSnapshot = { snapshot ->
                 latestSnapshot.set(snapshot)
                 if (connected.get()) activity.runOnUiThread { renderTs3Snapshot(snapshot, nick) }
+            },
+            onChat = { fromUserId, fromName, scope, targetClientId, text ->
+                activity.onChatMessageReceived(scope, fromUserId, targetClientId, fromName, text)
             }
         )
     }
