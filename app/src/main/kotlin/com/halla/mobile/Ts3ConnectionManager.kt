@@ -61,10 +61,9 @@ object Ts3ConnectionManager {
                 microphoneGainDb = prefs.getInt("mic_gain_db", 0).coerceIn(0, 30)
                 noiseSuppressionEnabled = prefs.getBoolean("noise_suppression", true)
                 echoCancellationEnabled = prefs.getBoolean("echo_cancellation", true)
-                microphoneMuted = appContext.getSharedPreferences("HallaPrefs", Context.MODE_PRIVATE)
-                    .getBoolean(HallaService.PREF_MIC_MUTED, false)
-                speakersMuted = appContext.getSharedPreferences("HallaPrefs", Context.MODE_PRIVATE)
-                    .getBoolean(HallaService.PREF_SPK_MUTED, false)
+                val audioPrefs = appContext.getSharedPreferences("HallaPrefs", Context.MODE_PRIVATE)
+                speakersMuted = audioPrefs.getBoolean(HallaService.PREF_SPK_MUTED, false)
+                microphoneMuted = audioPrefs.getBoolean(HallaService.PREF_MIC_MUTED, false) || speakersMuted
                 pttPressed = false
                 val player = try {
                     OpusAudioPlayer(appContext).also { it.start(); it.setMuted(speakersMuted) }
