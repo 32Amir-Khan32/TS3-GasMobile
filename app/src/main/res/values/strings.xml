@@ -5,6 +5,7 @@
 Toque em + para adicionar.</string>
     <string name="server_default">Novo servidor</string>
     <string name="server_edit">Editar servidor</string>
+    <string name="invalid_port">Porta inválida. Informe um número entre 1 e 65535.</string>
     <string name="server_motd">Bem-vindo ao servidor</string>
     <string name="online">🟢 Online</string>
     <string name="members_initial">👤 0 membros</string>
