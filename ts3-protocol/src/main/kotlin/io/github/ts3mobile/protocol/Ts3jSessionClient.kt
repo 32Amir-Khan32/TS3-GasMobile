@@ -1,6 +1,8 @@
 package io.github.ts3mobile.protocol
 
 import com.github.manevolent.ts3j.command.CommandException
+import com.github.manevolent.ts3j.command.SingleCommand
+import com.github.manevolent.ts3j.protocol.ProtocolRole
 import com.github.manevolent.ts3j.audio.Microphone
 import com.github.manevolent.ts3j.event.ChannelCreateEvent
 import com.github.manevolent.ts3j.event.ChannelDeletedEvent
@@ -29,6 +31,7 @@ import java.util.concurrent.atomic.AtomicReference
 class Ts3jSessionClient : Ts3SessionClient {
     private val generation = AtomicLong(0L)
     private val snapshotStore = SessionSnapshotStore()
+    @Volatile private var serverInfo: Map<String, String> = emptyMap()
 
     @Volatile
     private var socket: LocalTeamspeakClientSocket? = null
@@ -52,6 +55,7 @@ class Ts3jSessionClient : Ts3SessionClient {
         val token = generation.incrementAndGet()
         this.listener = listener
         snapshotStore.clear()
+        serverInfo = emptyMap()
         emitStatus(token, ConnectionStatus(ConnectionPhase.CONNECTING))
 
         val identity = Ts3IdentityCodec.decode(identityMaterial)
@@ -115,6 +119,7 @@ class Ts3jSessionClient : Ts3SessionClient {
                 if (socket === client) socket = null
                 return
             }
+            loadInitialSnapshot(client, token)
             publishSnapshot(token)
             emitStatus(token, ConnectionStatus(ConnectionPhase.CONNECTED))
         } catch (error: Throwable) {
@@ -284,11 +289,77 @@ class Ts3jSessionClient : Ts3SessionClient {
         if (client.isConnected) publishSnapshot(token)
     }
 
+    private fun loadInitialSnapshot(client: LocalTeamspeakClientSocket, token: Long) {
+        if (token != generation.get() || !client.isConnected) return
+        // Event subscriptions only deliver changes; they do not guarantee an initial roster.
+        // Query the real channel/client lists once after login, then let events keep them live.
+        try {
+            val channels = client.listChannels().map { channel ->
+                Ts3Channel(
+                    id = channel.id,
+                    parentId = channel.parentChannelId,
+                    orderAfterId = channel.order,
+                    name = channel.name,
+                    clientCount = channel.totalClients,
+                    hasPassword = channel.hasPassword(),
+                    isDefault = channel.isDefault(),
+                )
+            }.toList()
+            if (token == generation.get()) snapshotStore.putChannels(channels)
+        } catch (error: Throwable) {
+            logDiagnostic("initial channel list unavailable: ${error.conciseMessage()}")
+        }
+        try {
+            val participants = client.listClients()
+                .filter { it.type == REGULAR_CLIENT_TYPE }
+                .map { user ->
+                    Ts3Participant(
+                        id = user.id,
+                        channelId = user.channelId,
+                        nickname = user.nickname.orEmpty(),
+                        isTalking = user.isTalking(),
+                        isInputMuted = user.isInputMuted(),
+                        isOutputMuted = user.isOutputMuted(),
+                        uniqueIdentifier = user.uniqueIdentifier.orEmpty(),
+                    )
+                }.toList()
+            if (token == generation.get()) snapshotStore.putParticipants(participants)
+        } catch (error: Throwable) {
+            logDiagnostic("initial client list unavailable: ${error.conciseMessage()}")
+        }
+        try {
+            val rows = client.executeCommand(
+                SingleCommand("serverinfo", ProtocolRole.CLIENT)
+            ).get().toList()
+            serverInfo = rows.firstOrNull()?.parameters?.associate { it.name to it.value }.orEmpty()
+        } catch (error: Throwable) {
+            logDiagnostic("server info unavailable: ${error.conciseMessage()}")
+        }
+    }
+
     private fun publishSnapshot(token: Long) {
         if (token != generation.get()) return
         val ownClientId = socket?.takeIf { it.isConnected }?.clientId
-        listener?.onSnapshotChanged(snapshotStore.snapshot().copy(ownClientId = ownClientId))
+        val info = serverInfo
+        listener?.onSnapshotChanged(
+            snapshotStore.snapshot().copy(
+                ownClientId = ownClientId,
+                serverName = info["virtualserver_name"].orEmpty().ts3Unescape(),
+                serverMotd = info["virtualserver_welcomemessage"].orEmpty().ts3Unescape(),
+                maxClients = info["virtualserver_maxclients"]?.toIntOrNull()?.takeIf { it > 0 } ?: 32,
+                clientsOnline = info["virtualserver_clientsonline"]?.toIntOrNull()
+                    ?: snapshotStore.snapshot().participants.size,
+                uptimeSeconds = info["virtualserver_uptime"]?.toLongOrNull() ?: 0L,
+                serverVersion = info["virtualserver_version"].orEmpty().ts3Unescape(),
+                serverPlatform = info["virtualserver_platform"].orEmpty().ts3Unescape(),
+            )
+        )
     }
+
+    private fun String.ts3Unescape(): String = replace("\\s", " ")
+        .replace("\\p", "|")
+        .replace("\\/", "/")
+        .replace("\\\\", "\\")
 
     private fun emitStatus(token: Long, status: ConnectionStatus) {
         if (token == generation.get()) listener?.onStatusChanged(status)
