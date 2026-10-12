@@ -36,7 +36,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          yes | sdkmanager --licenses >/dev/null
+          # sdkmanager may exit as soon as licenses are accepted, which makes yes report EPIPE.
+          # The following sdkmanager --install command still fails the job if SDK setup is unsuccessful.
+          yes | sdkmanager --licenses >/dev/null || true
           sdkmanager --install \
             "platform-tools" \
             "platforms;android-34" \
