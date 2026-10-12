@@ -18,6 +18,7 @@ import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.math.max
+import kotlin.math.pow
 import kotlin.math.sqrt
 
 class OpusMicrophoneCapture(
@@ -33,8 +34,23 @@ class OpusMicrophoneCapture(
             if (!value) encodedFrames.clear()
         }
     @Volatile var voiceActivationEnabled: Boolean = false
-    @Volatile var voiceActivationThreshold: Double = 650.0
+    @Volatile var voiceActivationThreshold: Double = 150.0
+    @Volatile var micGainDb: Int = 0
+    @Volatile var noiseSuppressionEnabled: Boolean = true
+    @Volatile var echoCancellationEnabled: Boolean = true
+    @Volatile private var noiseSuppressor: NoiseSuppressor? = null
+    @Volatile private var echoCanceler: AcousticEchoCanceler? = null
     private val lifecycleLock = Any()
+
+    fun setNoiseSuppressionEnabled(enabled: Boolean) {
+        noiseSuppressionEnabled = enabled
+        runCatching { noiseSuppressor?.enabled = enabled }
+    }
+
+    fun setEchoCancellationEnabled(enabled: Boolean) {
+        echoCancellationEnabled = enabled
+        runCatching { echoCanceler?.enabled = enabled }
+    }
     private val encodedFrameCount = AtomicLong(0L)
     private val providedFrameCount = AtomicLong(0L)
     private val capturedNonZeroPcm = AtomicBoolean(false)
@@ -247,6 +263,13 @@ class OpusMicrophoneCapture(
                 denoiserOffset = 0
                 if (opusOffset < opusPcm.size) continue
 
+                val gain = 10.0.pow(micGainDb.coerceIn(0, 30) / 20.0)
+                if (gain != 1.0) {
+                    for (i in opusPcm.indices) {
+                        opusPcm[i] = (opusPcm[i].toDouble() * gain).toInt()
+                            .coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt()).toShort()
+                    }
+                }
                 if (voiceActivationEnabled) {
                     val rms = sqrt(opusPcm.sumOf { sample ->
                         sample.toDouble() * sample.toDouble()
@@ -316,6 +339,8 @@ class OpusMicrophoneCapture(
             runCatching { record.stop() }
             runCatching { record.release() }
             audioEffects.forEach { runCatching { it.release() } }
+            noiseSuppressor = null
+            echoCanceler = null
             denoiser.close()
             encoder.close()
             synchronized(lifecycleLock) {
@@ -332,14 +357,14 @@ class OpusMicrophoneCapture(
 
     private fun createAudioEffects(audioSessionId: Int): List<AudioEffect> = buildList {
         if (NoiseSuppressor.isAvailable()) {
-            createConfiguredEffect("noise suppressor", enabled = true) {
+            createConfiguredEffect("noise suppressor", enabled = noiseSuppressionEnabled) {
                 NoiseSuppressor.create(audioSessionId)
-            }?.let(::add)
+            }?.let { effect -> noiseSuppressor = effect; add(effect) }
         }
         if (AcousticEchoCanceler.isAvailable()) {
-            createConfiguredEffect("acoustic echo canceler", enabled = true) {
+            createConfiguredEffect("acoustic echo canceler", enabled = echoCancellationEnabled) {
                 AcousticEchoCanceler.create(audioSessionId)
-            }?.let(::add)
+            }?.let { effect -> echoCanceler = effect; add(effect) }
         }
         if (AutomaticGainControl.isAvailable()) {
             createConfiguredEffect("automatic gain control", enabled = false) {
