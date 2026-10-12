@@ -5,8 +5,9 @@
 <h1 align="center">TS3-GasMObile</h1>
 
 <p align="center">
-  Independent Android voice-client project derived from Halla Mobile. Kotlin UI,
-  C++/JNI network and voice core. **TeamSpeak 3 server compatibility is not implemented yet; the current core speaks the Halla protocol.**
+  Android voice client with a native TeamSpeak 3 protocol path, Kotlin UI,
+  ts3j session transport, and native Opus audio. Halla-specific extensions remain
+  separate and are not automatically available on standard TeamSpeak servers.
 </p>
 
 <p align="center">
@@ -57,11 +58,13 @@ We thank everyone for their collaboration in strengthening the platform.
 
 ## Overview
 
-**Halla Mobile** is the Android client for Halla: it lets you join the same
-**Halla Server** servers used by the desktop client, with voice, text chat,
-channels, groups/permissions, and whisper — from your pocket, even with the
-app in the background (foreground service + floating PTT button over other
-apps).
+**TS3-GasMObile** now includes a standard TeamSpeak 3 connection path on the
+`ts3-real-protocol` branch, using the TeamSpeak client protocol through ts3j,
+native Opus voice, channel/client snapshots, channel joining, and server/channel/
+private text chat. The app still contains the original Halla UI and services;
+features that depend on Halla-only server extensions (custom E2EE, screen-share
+signaling, whisper overlays, and Halla administration commands) need a separate
+compatible implementation and should not be assumed to work on a standard TS3 server.
 
 Unlike a "wrapper" app, Halla Mobile **does not run Qt** — it is a native
 Android app (Kotlin + Android Views) with its own network/audio core written
@@ -70,6 +73,14 @@ JNI.
 
 ## Key Features
 
+- TeamSpeak 3 client-protocol connection on the `ts3-real-protocol` branch,
+  with server metadata, initial channel/client roster loading, live roster updates,
+  channel switching, and server/channel/private text chat.
+- Native Opus voice receive/transmit with microphone mute, speaker deafen,
+  push-to-talk, continuous transmission, voice-activation threshold, microphone
+  boost, and configurable Android echo cancellation/noise suppression.
+- Original Halla-specific features remain in the codebase but require Halla-compatible
+  servers or protocol extensions; they are not automatically supported by standard TS3.
 - Connection to Halla Server servers (same protocol as the desktop client).
 - Real-time voice: capture/playback via `AudioRecord`/`AudioTrack`, **Opus**
   codec (compiled from the official source), with echo cancellation
