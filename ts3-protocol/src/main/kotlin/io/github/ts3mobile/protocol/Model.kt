@@ -58,6 +58,13 @@ data class SessionSnapshot(
     val channels: List<Ts3Channel> = emptyList(),
     val participants: List<Ts3Participant> = emptyList(),
     val ownClientId: Int? = null,
+    val serverName: String = "",
+    val serverMotd: String = "",
+    val maxClients: Int = 32,
+    val clientsOnline: Int = 0,
+    val uptimeSeconds: Long = 0L,
+    val serverVersion: String = "",
+    val serverPlatform: String = "",
 ) {
     val currentChannelId: Int?
         get() = participants.firstOrNull { it.id == ownClientId }?.channelId
