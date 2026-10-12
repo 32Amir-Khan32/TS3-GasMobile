@@ -135,6 +135,7 @@ class MainActivity : AppCompatActivity(), HallaCore.Callbacks {
 
     internal var isMuted = false
     internal var isDeaf = false
+    private var micMutedBeforeDeafen = false
     internal var channelsData = JSONArray()
     internal var usersData = JSONArray()
     internal var myPermissions = JSONObject()
@@ -481,7 +482,9 @@ class MainActivity : AppCompatActivity(), HallaCore.Callbacks {
             imgMicIcon.setImageResource(if (isMuted) R.drawable.ic_mic_mute else R.drawable.ic_mic)
             txtMicText.text = if (isMuted) getString(R.string.unmute_mic) else getString(R.string.mute_mic)
             applyDockBubbleState(btnMuteMicModule, imgMicIcon, txtMicText, isMuted)
-            HallaCore.sendStatus(isMuted, isDeaf, isAway, false, isChannelCommander)
+            if (!Ts3ConnectionManager.isConnected()) {
+                HallaCore.sendStatus(isMuted, isDeaf, isAway, false, isChannelCommander)
+            }
         }
 
         btnDeafenModule.setOnClickListener {
@@ -496,17 +499,23 @@ class MainActivity : AppCompatActivity(), HallaCore.Callbacks {
             applyDockBubbleState(btnDeafenModule, imgDeafenIcon, txtDeafenText, isDeaf)
 
             if (isDeaf) {
-                // Ao mutar os fones, o microfone é mutado também.
+                // Deafen also mutes the microphone; remember its previous state
+                // so undeafen does not unexpectedly unmute an already-muted mic.
+                micMutedBeforeDeafen = isMuted
                 isMuted = true
-                if (HallaService.isRunning() || Ts3ConnectionManager.isConnected()) {
-                    HallaService.setMicMuted(this, true)
-                } else {
-                    audioManager.setTransmitEnabled(false)
-                }
-                imgMicIcon.setImageResource(R.drawable.ic_mic_mute)
-                txtMicText.text = getString(R.string.unmute_mic)
-                applyDockBubbleState(btnMuteMicModule, imgMicIcon, txtMicText, true)
+            } else {
+                isMuted = micMutedBeforeDeafen
             }
+            if (HallaService.isRunning() || Ts3ConnectionManager.isConnected()) {
+                HallaService.setMicMuted(this, isMuted)
+            } else {
+                audioManager.setTransmitEnabled(!isMuted)
+            }
+            imgMicIcon.setImageResource(if (isMuted) R.drawable.ic_mic_mute else R.drawable.ic_mic)
+            txtMicText.text = if (isMuted) getString(R.string.unmute_mic) else getString(R.string.mute_mic)
+            applyDockBubbleState(btnMuteMicModule, imgMicIcon, txtMicText, isMuted)
+            if (false) {
+                imgMicIcon.setImageResource(R.drawable.ic_mic_mute)
             if (!HallaService.isRunning() && !Ts3ConnectionManager.isConnected()) {
                 HallaCore.sendStatus(isMuted, isDeaf, isAway, false, isChannelCommander)
             }
