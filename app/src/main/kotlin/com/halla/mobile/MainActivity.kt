@@ -142,6 +142,7 @@ class MainActivity : AppCompatActivity(), HallaCore.Callbacks {
     // Ícones de cargo: escopo por servidor conectado e views do painel de
     // informações aguardando a imagem (icon_get em voo).
     internal var activeServerKey = ""
+    internal var activeTs3ServerInfo = JSONObject()
 
 
     // Novas variáveis para Áudio, Sensor, Identidades e Status
@@ -461,7 +462,8 @@ class MainActivity : AppCompatActivity(), HallaCore.Callbacks {
         }
 
         btnBannerSettings.setOnClickListener {
-            admin.showServerSettingsDialog()
+            if (Ts3ConnectionManager.isConnected()) showTs3ServerInfoDialog()
+            else admin.showServerSettingsDialog()
         }
 
         btnInviteMembers.setOnClickListener {
@@ -667,6 +669,40 @@ class MainActivity : AppCompatActivity(), HallaCore.Callbacks {
             txtPttText.text = getString(R.string.talk)
             setPttButtonBackground(Color.parseColor("#7C3AED"))
         }
+    }
+
+    internal fun showTs3ServerInfoDialog() {
+        val info = activeTs3ServerInfo
+        val prefs = getSharedPreferences("HallaPrefs", Context.MODE_PRIVATE)
+        val host = prefs.getString("last_srv_host", "") ?: ""
+        val port = prefs.getInt("last_srv_port", 9987)
+        val online = info.optInt("clientsOnline", usersData.length())
+        val maximum = info.optInt("maxClients", activeMaxClients)
+        val channelCount = info.optInt("channelCount", channelsData.length())
+        val uptimeSeconds = info.optLong("uptime", 0L).coerceAtLeast(0L)
+        val days = uptimeSeconds / 86_400
+        val hours = (uptimeSeconds % 86_400) / 3_600
+        val minutes = (uptimeSeconds % 3_600) / 60
+        val seconds = uptimeSeconds % 60
+        val uptime = if (uptimeSeconds == 0L) "Unknown"
+            else "%d days %02d:%02d:%02d".format(days, hours, minutes, seconds)
+        val details = buildString {
+            append("Address: ").append(host).append(':').append(port).append('\n')
+            append("Users: ").append(online).append('/').append(maximum).append('\n')
+            append("Channels: ").append(channelCount).append('\n')
+            append("Uptime: ").append(uptime).append('\n')
+            val version = info.optString("version")
+            if (version.isNotBlank()) append("Version: ").append(version).append('\n')
+            val platform = info.optString("platform")
+            if (platform.isNotBlank()) append("Platform: ").append(platform).append('\n')
+            val motd = info.optString("motd")
+            if (motd.isNotBlank()) append('\n').append("Message of the day:\n").append(motd)
+        }
+        AlertDialog.Builder(this)
+            .setTitle(info.optString("name").ifBlank { txtActiveServerName.text.toString() })
+            .setMessage(details)
+            .setPositiveButton(android.R.string.ok, null)
+            .show()
     }
 
     internal fun syncAudioUiFromPreferences() {
