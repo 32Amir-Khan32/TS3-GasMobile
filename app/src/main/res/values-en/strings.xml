@@ -1,9 +1,9 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Halla</string>
+    <string name="app_name">TS3-GasMObile</string>
     <string name="empty_servers">No saved servers.
 Tap + to add one.</string>
-    <string name="server_default">Halla Server</string>
+    <string name="server_default">New Server</string>
     <string name="server_motd">Welcome to the Halla server!</string>
     <string name="online">🟢 Online</string>
     <string name="channels_voice">VOICE CHANNELS</string>
@@ -20,7 +20,7 @@ Tap + to add one.</string>
     <string name="settings_general_title">General settings</string>
     <string name="settings_audio_title">Audio settings</string>
     <string name="settings_visual_title">Visual appearance</string>
-    <string name="settings_about_title">About Halla Mobile</string>
+    <string name="settings_about_title">About TS3-GasMObile</string>
     <string name="settings_language">Language</string>
     <string name="language_system">Automatic (phone language)</string>
     <string name="language_portuguese">Portuguese</string>
@@ -39,13 +39,13 @@ Tap + to add one.</string>
     <string name="audio_filter_unavailable">unavailable</string>
     <string name="premium_dark_theme">Premium dark theme</string>
     <string name="show_room_badges">Show room count badges</string>
-    <string name="about_description">A high-fidelity, low-latency voice communication app developed by the Halla team.</string>
+    <string name="about_description">TS3-GasMObile is an independent voice client project. TeamSpeak 3 protocol compatibility is not implemented yet.</string>
     <string name="check_updates">Check for updates</string>
     <string name="help">Help</string>
     <string name="menu_settings">⚙️   Settings</string>
     <string name="menu_help">❓   Help</string>
-    <string name="about_version">Halla Mobile %1$s</string>
-    <string name="auto_update_available">A new Halla Mobile version (%1$s) is available.
+    <string name="about_version">TS3-GasMObile %1$s</string>
+    <string name="auto_update_available">A new TS3-GasMObile version (%1$s) is available.
 
 Release notes:
 %2$s
@@ -60,7 +60,7 @@ Download and install now?</string>
     <string name="update_download_error">Unable to download the update: %1$s</string>
     <string name="install_permission">Allow installations from this source and try again.</string>
     <string name="installer_error">Unable to open the installer: %1$s</string>
-    <string name="fully_updated">Your Halla Mobile %1$s is up to date!</string>
+    <string name="fully_updated">Your TS3-GasMObile %1$s is up to date!</string>
     <string name="excellent">Excellent</string>
     <string name="mute_mic">Mute microphone</string>
     <string name="unmute_mic">Enable microphone</string>
@@ -205,9 +205,9 @@ Download and install now?</string>
     <string name="ok">OK</string>
     <string name="yes">Yes</string>
     <string name="no">No</string>
-    <string name="help_about">About Halla</string>
+    <string name="help_about">About TS3-GasMObile</string>
     <string name="members_initial">👤 0 members</string>
-    <string name="about_version_static">Halla Mobile</string>
+    <string name="about_version_static">TS3-GasMObile</string>
     <string name="record_static">Record</string>
     <string name="notification_channel_name">Halla voice session</string>
     <string name="notification_channel_desc">Halla connection and quick controls</string>
@@ -399,7 +399,7 @@ Download and install now?</string>
     <string name="log_file_not_found">Log file not found.</string>
     <string name="log_read_error">Error reading logs: %1$s</string>
     <string name="error_details">[%1$s] %2$s</string>
-    <string name="notification_title">Halla Mobile</string>
+    <string name="notification_title">TS3-GasMObile</string>
     <string name="notification_server_title">Halla — %1$s</string>
     <string name="description_format_hint">Supports blank lines, [br], [img]URL[/img], [url=URL]text[/url] and Markdown links.</string>
     <string name="bitrate_hint">Channel bitrate (16–384 kbps, default 96)</string>
