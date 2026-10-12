@@ -23,6 +23,10 @@ object Ts3ConnectionManager {
     @Volatile private var microphoneMuted = false
     @Volatile private var speakersMuted = false
     @Volatile private var transmissionMode = 0
+    @Volatile private var voiceSensitivity = 50
+    @Volatile private var microphoneGainDb = 0
+    @Volatile private var noiseSuppressionEnabled = true
+    @Volatile private var echoCancellationEnabled = true
     @Volatile private var pttPressed = false
     @Volatile private var currentChannelId = 0
     private val participantVolumeDb = java.util.concurrent.ConcurrentHashMap<Int, Int>()
@@ -53,6 +57,10 @@ object Ts3ConnectionManager {
             try {
                 val prefs = appContext.getSharedPreferences("HallaSettings", Context.MODE_PRIVATE)
                 transmissionMode = prefs.getInt("transmission_mode", 0).coerceIn(0, 2)
+                voiceSensitivity = prefs.getInt("vad_sensitivity", 50).coerceIn(0, 100)
+                microphoneGainDb = prefs.getInt("mic_gain_db", 0).coerceIn(0, 30)
+                noiseSuppressionEnabled = prefs.getBoolean("noise_suppression", true)
+                echoCancellationEnabled = prefs.getBoolean("echo_cancellation", true)
                 microphoneMuted = appContext.getSharedPreferences("HallaPrefs", Context.MODE_PRIVATE)
                     .getBoolean(HallaService.PREF_MIC_MUTED, false)
                 speakersMuted = appContext.getSharedPreferences("HallaPrefs", Context.MODE_PRIVATE)
@@ -75,6 +83,10 @@ object Ts3ConnectionManager {
                 }
                 microphone = mic
                 mic?.voiceActivationEnabled = transmissionMode == 0
+                mic?.voiceActivationThreshold = (voiceSensitivity * 3.0).coerceAtLeast(15.0)
+                mic?.micGainDb = microphoneGainDb
+                mic?.setNoiseSuppressionEnabled(noiseSuppressionEnabled)
+                mic?.setEchoCancellationEnabled(echoCancellationEnabled)
                 updateMicrophoneGate()
                 client.setVoiceSource(mic)
                 val key = "ts3-identity-material"
@@ -135,6 +147,8 @@ object Ts3ConnectionManager {
     private fun updateMicrophoneGate() {
         microphone?.let { mic ->
             mic.voiceActivationEnabled = transmissionMode == 0
+            mic.voiceActivationThreshold = (voiceSensitivity * 3.0).coerceAtLeast(15.0)
+            mic.micGainDb = microphoneGainDb
             mic.transmissionEnabled = !microphoneMuted &&
                 (transmissionMode != 1 || pttPressed)
         }
@@ -167,7 +181,25 @@ object Ts3ConnectionManager {
 
     fun setTransmissionMode(mode: Int) {
         transmissionMode = mode.coerceIn(0, 2)
+        if (transmissionMode != 1) pttPressed = false
         updateMicrophoneGate()
+    }
+
+    fun setVoiceSensitivity(sensitivity: Int) {
+        voiceSensitivity = sensitivity.coerceIn(0, 100)
+        updateMicrophoneGate()
+    }
+
+    fun setMicGainDb(gainDb: Int) {
+        microphoneGainDb = gainDb.coerceIn(0, 30)
+        updateMicrophoneGate()
+    }
+
+    fun setAudioProcessing(noiseSuppression: Boolean, echoCancellation: Boolean) {
+        noiseSuppressionEnabled = noiseSuppression
+        echoCancellationEnabled = echoCancellation
+        microphone?.setNoiseSuppressionEnabled(noiseSuppression)
+        microphone?.setEchoCancellationEnabled(echoCancellation)
     }
 
     fun disconnect() {
