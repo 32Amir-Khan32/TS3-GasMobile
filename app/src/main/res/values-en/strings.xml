@@ -5,6 +5,7 @@
 Tap + to add one.</string>
     <string name="server_default">New Server</string>
     <string name="server_edit">Edit server</string>
+    <string name="invalid_port">Invalid port. Enter a number from 1 to 65535.</string>
     <string name="server_motd">Welcome to the Halla server!</string>
     <string name="online">🟢 Online</string>
     <string name="channels_voice">VOICE CHANNELS</string>
