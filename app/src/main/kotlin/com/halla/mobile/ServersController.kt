@@ -467,7 +467,11 @@ class ServersController(private val activity: MainActivity) {
                     return@setOnClickListener
                 }
 
-                val port = portStr.toIntOrNull() ?: 9987
+                val port = portStr.toIntOrNull()
+                if (port == null || port !in 1..65535) {
+                    inputPort.error = activity.getString(R.string.invalid_port)
+                    return@setOnClickListener
+                }
 
                 if (editSrv != null) {
                     editSrv.put("name", name)
