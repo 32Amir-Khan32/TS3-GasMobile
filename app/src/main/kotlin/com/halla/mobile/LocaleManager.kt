@@ -14,7 +14,7 @@ object LocaleManager {
 
     fun wrap(context: Context): Context {
         val language = context.getSharedPreferences("HallaSettings", Context.MODE_PRIVATE)
-            .getString(PREF_LANGUAGE, SYSTEM) ?: SYSTEM
+            .getString(PREF_LANGUAGE, ENGLISH) ?: ENGLISH
         if (language == SYSTEM) {
             // O usuário pode voltar de um idioma manual para o idioma do
             // Android sem manter o Locale global anterior.
