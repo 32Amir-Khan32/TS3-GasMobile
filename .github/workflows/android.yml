@@ -28,9 +28,20 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@9fc6c4e9069bf8d3d10b2204b1fb8f6ef7065407 # v3
+        with:
+          # The legacy "tools" SDK package has been removed from current repositories.
+          packages: 'platform-tools'
 
-      - name: Install Android NDK
-        run: sdkmanager --install "ndk;25.2.9519653"
+      - name: Install Android SDK components
+        shell: bash
+        run: |
+          set -euo pipefail
+          yes | sdkmanager --licenses >/dev/null
+          sdkmanager --install \
+            "platform-tools" \
+            "platforms;android-34" \
+            "build-tools;34.0.0" \
+            "ndk;25.2.9519653"
 
       - name: Validate version/tag
         shell: bash
