@@ -560,8 +560,14 @@ class ServersController(private val activity: MainActivity) {
                     io.github.ts3mobile.protocol.ConnectionPhase.CONNECTED -> {
                         val first = connected.compareAndSet(false, true)
                         activity.runOnUiThread {
-                            if (first) activity.onConnected(host, "TeamSpeak 3")
-                            renderTs3Snapshot(latestSnapshot.get(), nick)
+                            val snapshot = latestSnapshot.get()
+                            if (first) {
+                                activity.onConnected(
+                                    snapshot.serverName.ifBlank { host },
+                                    snapshot.serverMotd,
+                                )
+                            }
+                            renderTs3Snapshot(snapshot, nick)
                         }
                     }
                     io.github.ts3mobile.protocol.ConnectionPhase.ERROR -> {
@@ -613,6 +619,7 @@ class ServersController(private val activity: MainActivity) {
                 .put("id", channel.id).put("parent", channel.parentId)
                 .put("order", channel.orderAfterId).put("name", channel.name)
                 .put("users", channelUsers).put("desc", "")
+                .put("topic", channel.topic)
                 .put("hasPassword", channel.hasPassword))
         }
         val users = JSONArray()
@@ -626,10 +633,21 @@ class ServersController(private val activity: MainActivity) {
         }
         val selfId = snapshot.ownClientId
             ?: snapshot.participants.firstOrNull { it.nickname == nickname }?.id ?: 0
+        val server = JSONObject()
+            .put("name", snapshot.serverName)
+            .put("motd", snapshot.serverMotd)
+            .put("maxClients", snapshot.maxClients)
+            .put("clientsOnline", snapshot.clientsOnline.takeIf { it > 0 } ?: users.length())
+            .put("uptime", snapshot.uptimeSeconds)
+            .put("version", snapshot.serverVersion)
+            .put("platform", snapshot.serverPlatform)
+            .put("channelCount", channels.length())
         val welcome = JSONObject()
             .put("selfId", selfId).put("channels", channels).put("users", users)
             .put("myPerms", JSONObject()).put("groups", JSONArray())
-            .put("server", JSONObject().put("maxClients", 32))
+            .put("server", server)
+        snapshot.serverName.takeIf { it.isNotBlank() }?.let { activity.txtActiveServerName.text = it }
+        activity.txtActiveMotd.text = snapshot.serverMotd
         activity.onWelcomeReceived(welcome.toString())
     }
 
