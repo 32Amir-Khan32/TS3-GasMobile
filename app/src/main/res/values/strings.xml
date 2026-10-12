@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Halla</string>
+    <string name="app_name">TS3-GasMObile</string>
     <string name="empty_servers">Nenhum servidor salvo.
 Toque em + para adicionar.</string>
     <string name="server_default">Servidor Halla</string>
