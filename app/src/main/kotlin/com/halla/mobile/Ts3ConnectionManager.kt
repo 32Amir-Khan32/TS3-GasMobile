@@ -1,6 +1,8 @@
 package com.halla.mobile
 
 import android.content.Context
+import io.github.ts3mobile.audio.opus.OpusAudioPlayer
+import io.github.ts3mobile.audio.opus.OpusMicrophoneCapture
 import io.github.ts3mobile.protocol.ConnectionPhase
 import io.github.ts3mobile.protocol.ConnectionStatus
 import io.github.ts3mobile.protocol.SessionSnapshot
@@ -16,6 +18,10 @@ import kotlin.concurrent.thread
 object Ts3ConnectionManager {
     @Volatile private var session: Ts3SessionClient? = null
     @Volatile private var connected = false
+    @Volatile private var microphone: OpusMicrophoneCapture? = null
+    @Volatile private var audioPlayer: OpusAudioPlayer? = null
+    @Volatile private var microphoneMuted = false
+    @Volatile private var speakersMuted = false
     fun isConnected(): Boolean = connected
 
     fun connect(
@@ -31,11 +37,29 @@ object Ts3ConnectionManager {
         val client = Ts3jSessionClient()
         synchronized(this) {
             session?.close()
+            microphone?.close()
+            audioPlayer?.close()
             session = client
+            microphone = null
+            audioPlayer = null
             connected = false
         }
         thread(name = "ts3-connect") {
             try {
+                val player = OpusAudioPlayer(appContext)
+                player.start()
+                player.setMuted(speakersMuted)
+                audioPlayer = player
+                val mic = try {
+                    OpusMicrophoneCapture(appContext) { error ->
+                        android.util.Log.e("TS3-GasMobile", "Microphone capture failed", error)
+                    }.also { it.start() }
+                } catch (error: Throwable) {
+                    android.util.Log.w("TS3-GasMobile", "Microphone unavailable; connecting receive-only", error)
+                    null
+                }
+                microphone = mic
+                client.setVoiceSource(if (microphoneMuted) null else mic)
                 val key = "ts3-identity-material"
                 var identity = HallaCore.readSecret(appContext, key)
                 if (identity.isBlank()) {
@@ -52,7 +76,7 @@ object Ts3ConnectionManager {
                         }
                         override fun onSnapshotChanged(snapshot: SessionSnapshot) = onSnapshot(snapshot)
                         override fun onVoiceFrame(frame: VoiceFrame) {
-                            // The Opus capture/playback pipeline still needs wiring.
+                            audioPlayer?.submit(frame)
                         }
                     }
                 )
@@ -65,13 +89,29 @@ object Ts3ConnectionManager {
 
     fun joinChannel(channelId: Int, password: String = "") { session?.joinChannel(channelId, password) }
 
+    fun setMicMuted(muted: Boolean) {
+        microphoneMuted = muted
+        session?.setVoiceSource(if (muted) null else microphone)
+    }
+
+    fun setSpeakersMuted(muted: Boolean) {
+        speakersMuted = muted
+        audioPlayer?.setMuted(muted)
+    }
+
     fun disconnect() {
         val current = session
+        val mic = microphone
+        val player = audioPlayer
         session = null
+        microphone = null
+        audioPlayer = null
         connected = false
         thread(name = "ts3-disconnect") {
             try { current?.disconnect("Disconnected by user") } catch (_: Throwable) { }
             try { current?.close() } catch (_: Throwable) { }
+            try { mic?.close() } catch (_: Throwable) { }
+            try { player?.close() } catch (_: Throwable) { }
         }
     }
 }

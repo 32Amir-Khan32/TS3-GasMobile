@@ -15,4 +15,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "TS3-GasMObile"
-include(":app", ":ts3-protocol")
+include(":app", ":ts3-protocol", ":audio-opus")
