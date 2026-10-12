@@ -1158,10 +1158,4 @@ class MainActivity : AppCompatActivity(), HallaCore.Callbacks {
     }
 
 
-    companion object {
-        // Servidor oficial pré-salvo na primeira execução (sem apelido).
-        const val OFFICIAL_SERVER_NAME = "HALLA OFFICIAL SERVER"
-        const val OFFICIAL_SERVER_HOST = "163.176.35.133"
-        const val OFFICIAL_SERVER_PORT = 9987
-    }
 }
