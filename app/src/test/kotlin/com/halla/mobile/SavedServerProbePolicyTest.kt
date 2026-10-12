@@ -32,36 +32,29 @@ class SavedServerProbePolicyTest {
     }
 
     @Test
-    fun savedServerPingMeasuresOnlyProbeRoundTrip() {
+    fun savedServerProbeUsesTcpReachabilityNotHallaTls() {
         val source = mainActivitySource()
         val functionStart = source.indexOf("private fun pingServersInBackground")
         val functionEnd = source.indexOf("private fun updateServerProbeOnUI", functionStart)
         assertTrue(functionStart >= 0 && functionEnd > functionStart)
         val probe = source.substring(functionStart, functionEnd)
 
-        val handshake = probe.indexOf("socket.startHandshake()")
-        val timerStart = probe.indexOf("val probeStartedAt")
-        val request = probe.indexOf("socket.getOutputStream().write")
-        val response = probe.indexOf("bufferedReader().readLine()")
-        val elapsed = probe.indexOf("elapsedRealtimeNanos() - probeStartedAt")
-
-        assertTrue(handshake >= 0)
-        assertTrue(timerStart > handshake)
-        assertTrue(request > timerStart)
-        assertTrue(response > request)
-        assertTrue(elapsed > response)
-        assertTrue("DNS/TCP/TLS setup must not be included in displayed ping",
-            !probe.contains("System.currentTimeMillis() - startTime"))
+        assertTrue(probe.contains("java.net.Socket()"))
+        assertTrue(probe.contains("socket.connect(java.net.InetSocketAddress(host, port)"))
+        assertTrue(probe.contains("elapsedRealtime() - started"))
+        assertTrue(!probe.contains("socket.startHandshake()"))
+        assertTrue(!probe.contains("server_probe"))
     }
 
     @Test
-    fun unconfirmedCertificateDoesNotMakeSafeProbeLookOffline() {
+    fun ts3ProbeDoesNotRequireTlsCertificatePinning() {
         val source = mainActivitySource()
         val functionStart = source.indexOf("private fun pingServersInBackground")
         val functionEnd = source.indexOf("private fun updateServerProbeOnUI", functionStart)
         val probe = source.substring(functionStart, functionEnd)
-        assertTrue(!probe.contains("Certificado TLS ainda não confirmado"))
-        assertTrue(probe.contains("saved != null && saved != fp"))
+        assertTrue(!probe.contains("SSLContext"))
+        assertTrue(!probe.contains("X509TrustManager"))
+        assertTrue(!probe.contains("tls_fingerprint"))
     }
 
     @Test

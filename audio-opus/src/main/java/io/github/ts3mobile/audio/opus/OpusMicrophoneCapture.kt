@@ -167,16 +167,16 @@ class OpusMicrophoneCapture(
         }
     }
 
-    override fun isReady(): Boolean = encodedFrames.isNotEmpty()
+    override fun isReady(): Boolean = transmissionEnabled && encodedFrames.isNotEmpty()
 
     override fun pollEncodedFrame(): ByteArray? {
         if (!transmissionEnabled) return null
         return encodedFrames.poll()?.also { frame ->
-        val provided = providedFrameCount.incrementAndGet()
-        if (provided == 1L) {
-            System.err.println("TS3_AUDIO: provided first microphone Opus frame (${frame.size} bytes)")
+            val provided = providedFrameCount.incrementAndGet()
+            if (provided == 1L) {
+                System.err.println("TS3_AUDIO: provided first microphone Opus frame (${frame.size} bytes)")
+            }
         }
-    }
     }
 
     override fun close() = stop()
@@ -368,6 +368,7 @@ class OpusMicrophoneCapture(
         const val FRAME_BYTES = OPUS_FRAME_SAMPLES * 2
         const val CAPTURE_BUFFER_BYTES = FRAME_BYTES * 2
         const val ENCODED_QUEUE_CAPACITY = 3
+        const val VOICE_ACTIVATION_HOLD_NANOS = 350_000_000L
         const val STOP_JOIN_TIMEOUT_MS = 1_500L
     }
 }

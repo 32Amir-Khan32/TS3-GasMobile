@@ -154,6 +154,8 @@ class HallaService : Service(), HallaCore.Callbacks {
         fun setMicMuted(context: Context, muted: Boolean) {
             if (Ts3ConnectionManager.isConnected()) {
                 Ts3ConnectionManager.setMicMuted(muted)
+                context.getSharedPreferences("HallaPrefs", Context.MODE_PRIVATE).edit()
+                    .putBoolean(PREF_MIC_MUTED, muted).apply()
                 return
             }
             context.startService(Intent(context, HallaService::class.java).apply {
@@ -165,6 +167,8 @@ class HallaService : Service(), HallaCore.Callbacks {
         fun setSpeakersMuted(context: Context, muted: Boolean) {
             if (Ts3ConnectionManager.isConnected()) {
                 Ts3ConnectionManager.setSpeakersMuted(muted)
+                context.getSharedPreferences("HallaPrefs", Context.MODE_PRIVATE).edit()
+                    .putBoolean(PREF_SPK_MUTED, muted).apply()
                 return
             }
             context.startService(Intent(context, HallaService::class.java).apply {
