@@ -42,6 +42,7 @@ data class Ts3Channel(
     val clientCount: Int,
     val hasPassword: Boolean,
     val isDefault: Boolean,
+    val topic: String = "",
 )
 
 data class Ts3Participant(
