@@ -437,7 +437,7 @@ class MainActivity : AppCompatActivity(), HallaCore.Callbacks {
         }
 
         btnDisconnect.setOnClickListener {
-            if (HallaService.isRunning()) HallaService.stop(this)
+            if (Ts3ConnectionManager.isConnected()) Ts3ConnectionManager.disconnect() else if (HallaService.isRunning()) HallaService.stop(this)
             else {
                 audioManager.stop()
                 HallaCore.disconnectFromServer()
