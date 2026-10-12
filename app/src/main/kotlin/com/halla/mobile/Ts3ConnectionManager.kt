@@ -30,6 +30,8 @@ object Ts3ConnectionManager {
     @Volatile private var pttPressed = false
     @Volatile private var currentChannelId = 0
     private val participantVolumeDb = java.util.concurrent.ConcurrentHashMap<Int, Int>()
+    private val participantVolumeByUid = java.util.concurrent.ConcurrentHashMap<String, Int>()
+    @Volatile private var latestSnapshot = SessionSnapshot.Empty
     fun isConnected(): Boolean = connected
 
     fun connect(
@@ -52,6 +54,8 @@ object Ts3ConnectionManager {
             microphone = null
             audioPlayer = null
             connected = false
+            latestSnapshot = SessionSnapshot.Empty
+            participantVolumeDb.clear()
         }
         thread(name = "ts3-connect") {
             try {
@@ -103,7 +107,9 @@ object Ts3ConnectionManager {
                             onStatus(status)
                         }
                         override fun onSnapshotChanged(snapshot: SessionSnapshot) {
+                            latestSnapshot = snapshot
                             snapshot.currentChannelId?.let { currentChannelId = it }
+                            applyParticipantGains()
                             onSnapshot(snapshot)
                         }
                         override fun onTextMessage(fromUserId: Int, fromName: String, targetMode: String, targetClientId: Int, message: String) {
@@ -166,10 +172,26 @@ object Ts3ConnectionManager {
     fun setUserVolumeDb(userId: Int, volumeDb: Int) {
         if (userId <= 0) return
         val db = volumeDb.coerceIn(-60, 30)
-        if (db == 0) participantVolumeDb.remove(userId) else participantVolumeDb[userId] = db
-        val gains = participantVolumeDb.mapValues { (_, value) ->
-            Math.pow(10.0, value / 20.0).toFloat()
+        val participant = latestSnapshot.participants.firstOrNull { it.id == userId }
+        val uid = participant?.uniqueIdentifier.orEmpty()
+        if (uid.isNotBlank()) {
+            if (db == 0) participantVolumeByUid.remove(uid) else participantVolumeByUid[uid] = db
+            participantVolumeDb.remove(userId)
+        } else if (db == 0) {
+            participantVolumeDb.remove(userId)
+        } else {
+            participantVolumeDb[userId] = db
         }
+        applyParticipantGains()
+    }
+
+    private fun applyParticipantGains() {
+        val gains = latestSnapshot.participants.mapNotNull { participant ->
+            val db = participantVolumeByUid[participant.uniqueIdentifier]
+                ?: participantVolumeDb[participant.id]
+                ?: return@mapNotNull null
+            participant.id to Math.pow(10.0, db / 20.0).toFloat()
+        }.toMap()
         audioPlayer?.replaceParticipantGains(gains)
     }
 
