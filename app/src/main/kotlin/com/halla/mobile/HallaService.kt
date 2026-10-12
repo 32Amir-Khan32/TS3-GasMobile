@@ -152,6 +152,12 @@ class HallaService : Service(), HallaCore.Callbacks {
         fun isScreenSharing(): Boolean = screenSharing
 
         fun setMicMuted(context: Context, muted: Boolean) {
+            if (Ts3ConnectionManager.isConnected()) {
+                Ts3ConnectionManager.setMicMuted(muted)
+                context.getSharedPreferences("HallaPrefs", Context.MODE_PRIVATE).edit()
+                    .putBoolean(PREF_MIC_MUTED, muted).apply()
+                return
+            }
             context.startService(Intent(context, HallaService::class.java).apply {
                 action = ACTION_MUTE_MIC
                 putExtra(EXTRA_ENABLED, muted)
@@ -159,6 +165,12 @@ class HallaService : Service(), HallaCore.Callbacks {
         }
 
         fun setSpeakersMuted(context: Context, muted: Boolean) {
+            if (Ts3ConnectionManager.isConnected()) {
+                Ts3ConnectionManager.setSpeakersMuted(muted)
+                context.getSharedPreferences("HallaPrefs", Context.MODE_PRIVATE).edit()
+                    .putBoolean(PREF_SPK_MUTED, muted).apply()
+                return
+            }
             context.startService(Intent(context, HallaService::class.java).apply {
                 action = ACTION_MUTE_SPEAKERS
                 putExtra(EXTRA_ENABLED, muted)
@@ -166,6 +178,10 @@ class HallaService : Service(), HallaCore.Callbacks {
         }
 
         fun setPtt(context: Context, pressed: Boolean) {
+            if (Ts3ConnectionManager.isConnected()) {
+                Ts3ConnectionManager.setPtt(pressed)
+                return
+            }
             context.startService(Intent(context, HallaService::class.java).apply {
                 action = ACTION_SET_PTT
                 putExtra(EXTRA_PRESSED, pressed)
@@ -205,6 +221,12 @@ class HallaService : Service(), HallaCore.Callbacks {
         }
 
         fun setTransmissionMode(context: Context, mode: Int) {
+            if (Ts3ConnectionManager.isConnected()) {
+                Ts3ConnectionManager.setTransmissionMode(mode)
+                context.getSharedPreferences("HallaSettings", Context.MODE_PRIVATE).edit()
+                    .putInt("transmission_mode", mode.coerceIn(0, 2)).apply()
+                return
+            }
             context.startService(Intent(context, HallaService::class.java).apply {
                 action = ACTION_SET_TRANSMISSION_MODE
                 putExtra(EXTRA_MODE, mode)
@@ -212,6 +234,13 @@ class HallaService : Service(), HallaCore.Callbacks {
         }
 
         fun setAudioProcessing(context: Context, noiseSuppression: Boolean, echoCancellation: Boolean) {
+            if (Ts3ConnectionManager.isConnected()) {
+                Ts3ConnectionManager.setAudioProcessing(noiseSuppression, echoCancellation)
+                context.getSharedPreferences("HallaSettings", Context.MODE_PRIVATE).edit()
+                    .putBoolean("noise_suppression", noiseSuppression)
+                    .putBoolean("echo_cancellation", echoCancellation).apply()
+                return
+            }
             context.startService(Intent(context, HallaService::class.java).apply {
                 action = ACTION_SET_AUDIO_PROCESSING
                 putExtra(EXTRA_NOISE_SUPPRESSION, noiseSuppression)
@@ -220,6 +249,12 @@ class HallaService : Service(), HallaCore.Callbacks {
         }
 
         fun setMicGain(context: Context, gainDb: Int) {
+            if (Ts3ConnectionManager.isConnected()) {
+                Ts3ConnectionManager.setMicGainDb(gainDb)
+                context.getSharedPreferences("HallaSettings", Context.MODE_PRIVATE).edit()
+                    .putInt("mic_gain_db", gainDb.coerceIn(0, 30)).apply()
+                return
+            }
             context.startService(Intent(context, HallaService::class.java).apply {
                 action = ACTION_SET_MIC_GAIN
                 putExtra(EXTRA_MIC_GAIN, gainDb)
@@ -227,6 +262,10 @@ class HallaService : Service(), HallaCore.Callbacks {
         }
 
         fun setUserVolume(context: Context, userId: Int, volumeDb: Int) {
+            if (Ts3ConnectionManager.isConnected()) {
+                Ts3ConnectionManager.setUserVolumeDb(userId, volumeDb)
+                return
+            }
             context.startService(Intent(context, HallaService::class.java).apply {
                 action = ACTION_SET_USER_VOLUME
                 putExtra(EXTRA_USER_ID, userId)

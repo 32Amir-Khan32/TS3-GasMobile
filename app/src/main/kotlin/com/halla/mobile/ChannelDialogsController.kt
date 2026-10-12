@@ -115,7 +115,7 @@ class ChannelDialogsController(private val activity: MainActivity) {
         }
 
         if (!protected) {
-            HallaCore.joinChannel(chanId, "")
+            Ts3ConnectionManager.joinChannel(chanId, "")
             return
         }
 
@@ -129,7 +129,7 @@ class ChannelDialogsController(private val activity: MainActivity) {
             .setMessage(activity.getString(R.string.protected_channel))
             .setView(input)
             .setPositiveButton(activity.getString(R.string.channel_join)) { _, _ ->
-                HallaCore.joinChannel(chanId, input.text.toString())
+                Ts3ConnectionManager.joinChannel(chanId, input.text.toString())
             }
             .setNegativeButton(activity.getString(R.string.cancel), null)
             .show()

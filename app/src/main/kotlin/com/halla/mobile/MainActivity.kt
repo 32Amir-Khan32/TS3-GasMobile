@@ -135,6 +135,7 @@ class MainActivity : AppCompatActivity(), HallaCore.Callbacks {
 
     internal var isMuted = false
     internal var isDeaf = false
+    private var micMutedBeforeDeafen = false
     internal var channelsData = JSONArray()
     internal var usersData = JSONArray()
     internal var myPermissions = JSONObject()
@@ -142,6 +143,7 @@ class MainActivity : AppCompatActivity(), HallaCore.Callbacks {
     // Ícones de cargo: escopo por servidor conectado e views do painel de
     // informações aguardando a imagem (icon_get em voo).
     internal var activeServerKey = ""
+    internal var activeTs3ServerInfo = JSONObject()
 
 
     // Novas variáveis para Áudio, Sensor, Identidades e Status
@@ -437,7 +439,7 @@ class MainActivity : AppCompatActivity(), HallaCore.Callbacks {
         }
 
         btnDisconnect.setOnClickListener {
-            if (HallaService.isRunning()) HallaService.stop(this)
+            if (Ts3ConnectionManager.isConnected()) Ts3ConnectionManager.disconnect() else if (HallaService.isRunning()) HallaService.stop(this)
             else {
                 audioManager.stop()
                 HallaCore.disconnectFromServer()
@@ -461,7 +463,8 @@ class MainActivity : AppCompatActivity(), HallaCore.Callbacks {
         }
 
         btnBannerSettings.setOnClickListener {
-            admin.showServerSettingsDialog()
+            if (Ts3ConnectionManager.isConnected()) showTs3ServerInfoDialog()
+            else admin.showServerSettingsDialog()
         }
 
         btnInviteMembers.setOnClickListener {
@@ -470,32 +473,48 @@ class MainActivity : AppCompatActivity(), HallaCore.Callbacks {
 
         // Módulos do Dock Flutuante Inferior (Filtros de Cores Vetoriais de acordo com o mockup)
         btnMuteMicModule.setOnClickListener {
-            isMuted = !isMuted
-            if (HallaService.isRunning()) HallaService.setMicMuted(this, isMuted)
-            else audioManager.setTransmitEnabled(!isMuted)
+            isMuted = isDeaf || !isMuted
+            if (HallaService.isRunning() || Ts3ConnectionManager.isConnected()) {
+                HallaService.setMicMuted(this, isMuted)
+            } else {
+                audioManager.setTransmitEnabled(!isMuted)
+            }
             imgMicIcon.setImageResource(if (isMuted) R.drawable.ic_mic_mute else R.drawable.ic_mic)
             txtMicText.text = if (isMuted) getString(R.string.unmute_mic) else getString(R.string.mute_mic)
             applyDockBubbleState(btnMuteMicModule, imgMicIcon, txtMicText, isMuted)
-            HallaCore.sendStatus(isMuted, isDeaf, isAway, false, isChannelCommander)
+            if (!Ts3ConnectionManager.isConnected()) {
+                HallaCore.sendStatus(isMuted, isDeaf, isAway, false, isChannelCommander)
+            }
         }
 
         btnDeafenModule.setOnClickListener {
             isDeaf = !isDeaf
-            if (HallaService.isRunning()) HallaService.setSpeakersMuted(this, isDeaf)
-            else audioManager.setSpeakersEnabled(!isDeaf)
+            if (HallaService.isRunning() || Ts3ConnectionManager.isConnected()) {
+                HallaService.setSpeakersMuted(this, isDeaf)
+            } else {
+                audioManager.setSpeakersEnabled(!isDeaf)
+            }
             imgDeafenIcon.setImageResource(if (isDeaf) R.drawable.ic_deafen_mute else R.drawable.ic_headphones)
             txtDeafenText.text = if (isDeaf) getString(R.string.unmute_speakers) else getString(R.string.speakers)
             applyDockBubbleState(btnDeafenModule, imgDeafenIcon, txtDeafenText, isDeaf)
 
             if (isDeaf) {
-                // Ao mutar os fones, o microfone é mutado também.
+                // Deafen also mutes the microphone; remember its previous state
+                // so undeafen does not unexpectedly unmute an already-muted mic.
+                micMutedBeforeDeafen = isMuted
                 isMuted = true
-                if (!HallaService.isRunning()) audioManager.setTransmitEnabled(false)
-                imgMicIcon.setImageResource(R.drawable.ic_mic_mute)
-                txtMicText.text = getString(R.string.unmute_mic)
-                applyDockBubbleState(btnMuteMicModule, imgMicIcon, txtMicText, true)
+            } else {
+                isMuted = micMutedBeforeDeafen
             }
-            if (!HallaService.isRunning()) {
+            if (HallaService.isRunning() || Ts3ConnectionManager.isConnected()) {
+                HallaService.setMicMuted(this, isMuted)
+            } else {
+                audioManager.setTransmitEnabled(!isMuted)
+            }
+            imgMicIcon.setImageResource(if (isMuted) R.drawable.ic_mic_mute else R.drawable.ic_mic)
+            txtMicText.text = if (isMuted) getString(R.string.unmute_mic) else getString(R.string.mute_mic)
+            applyDockBubbleState(btnMuteMicModule, imgMicIcon, txtMicText, isMuted)
+            if (!HallaService.isRunning() && !Ts3ConnectionManager.isConnected()) {
                 HallaCore.sendStatus(isMuted, isDeaf, isAway, false, isChannelCommander)
             }
         }
@@ -505,14 +524,20 @@ class MainActivity : AppCompatActivity(), HallaCore.Callbacks {
             if (mode == 1) { // PTT mode
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> {
-                        if (HallaService.isRunning()) HallaService.setPtt(this, true)
-                        else audioManager.isPttPressed = true
+                        if (HallaService.isRunning() || Ts3ConnectionManager.isConnected()) {
+                            HallaService.setPtt(this, true)
+                        } else {
+                            audioManager.isPttPressed = true
+                        }
                         txtPttText.text = getString(R.string.talking)
                         setPttButtonBackground(Color.parseColor("#16A34A"))
                     }
                     MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                        if (HallaService.isRunning()) HallaService.setPtt(this, false)
-                        else audioManager.isPttPressed = false
+                        if (HallaService.isRunning() || Ts3ConnectionManager.isConnected()) {
+                            HallaService.setPtt(this, false)
+                        } else {
+                            audioManager.isPttPressed = false
+                        }
                         txtPttText.text = getString(R.string.talk)
                         setPttButtonBackground(Color.parseColor("#7C3AED"))
                     }
@@ -653,10 +678,46 @@ class MainActivity : AppCompatActivity(), HallaCore.Callbacks {
         }
     }
 
+    internal fun showTs3ServerInfoDialog() {
+        val info = activeTs3ServerInfo
+        val prefs = getSharedPreferences("HallaPrefs", Context.MODE_PRIVATE)
+        val host = prefs.getString("last_srv_host", "") ?: ""
+        val port = prefs.getInt("last_srv_port", 9987)
+        val online = info.optInt("clientsOnline", usersData.length())
+        val maximum = info.optInt("maxClients", activeMaxClients)
+        val channelCount = info.optInt("channelCount", channelsData.length())
+        val uptimeSeconds = info.optLong("uptime", 0L).coerceAtLeast(0L)
+        val days = uptimeSeconds / 86_400
+        val hours = (uptimeSeconds % 86_400) / 3_600
+        val minutes = (uptimeSeconds % 3_600) / 60
+        val seconds = uptimeSeconds % 60
+        val uptime = if (uptimeSeconds == 0L) "Unknown"
+            else "%d days %02d:%02d:%02d".format(days, hours, minutes, seconds)
+        val details = buildString {
+            append("Address: ").append(host).append(':').append(port).append('\n')
+            append("Users: ").append(online).append('/').append(maximum).append('\n')
+            append("Channels: ").append(channelCount).append('\n')
+            append("Uptime: ").append(uptime).append('\n')
+            val version = info.optString("version")
+            if (version.isNotBlank()) append("Version: ").append(version).append('\n')
+            val platform = info.optString("platform")
+            if (platform.isNotBlank()) append("Platform: ").append(platform).append('\n')
+            val motd = info.optString("motd")
+            if (motd.isNotBlank()) append('\n').append("Message of the day:\n").append(motd)
+        }
+        AlertDialog.Builder(this)
+            .setTitle(info.optString("name").ifBlank { txtActiveServerName.text.toString() })
+            .setMessage(details)
+            .setPositiveButton(android.R.string.ok, null)
+            .show()
+    }
+
     internal fun syncAudioUiFromPreferences() {
         val prefs = getSharedPreferences("HallaPrefs", Context.MODE_PRIVATE)
         isMuted = prefs.getBoolean(HallaService.PREF_MIC_MUTED, isMuted)
         isDeaf = prefs.getBoolean(HallaService.PREF_SPK_MUTED, isDeaf)
+        micMutedBeforeDeafen = isMuted
+        if (isDeaf) isMuted = true
         isAway = prefs.getBoolean(HallaService.PREF_AWAY, isAway)
         isChannelCommander = prefs.getBoolean(HallaService.PREF_COMMANDER, isChannelCommander)
         imgMicIcon.setImageResource(if (isMuted) R.drawable.ic_mic_mute else R.drawable.ic_mic)
