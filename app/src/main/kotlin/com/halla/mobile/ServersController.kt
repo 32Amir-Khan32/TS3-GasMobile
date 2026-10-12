@@ -565,10 +565,11 @@ class ServersController(private val activity: MainActivity) {
                         }
                     }
                     io.github.ts3mobile.protocol.ConnectionPhase.ERROR -> {
-                        if (!connected.get()) activity.runOnUiThread {
+                        val wasConnected = connected.getAndSet(false)
+                        activity.runOnUiThread {
                             activity.connectionTimeoutRunnable?.let { activity.handler.removeCallbacks(it) }
                             activity.connectionTimeoutRunnable = null
-                            btnConnectStatusNormal()
+                            if (wasConnected) activity.onDisconnected() else btnConnectStatusNormal()
                             activity.txtError.text = status.detail ?: "TeamSpeak connection failed"
                             activity.txtError.visibility = View.VISIBLE
                         }
