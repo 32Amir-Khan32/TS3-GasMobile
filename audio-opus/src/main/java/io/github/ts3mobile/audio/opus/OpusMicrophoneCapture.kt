@@ -36,19 +36,19 @@ class OpusMicrophoneCapture(
     @Volatile var voiceActivationEnabled: Boolean = false
     @Volatile var voiceActivationThreshold: Double = 150.0
     @Volatile var micGainDb: Int = 0
-    @Volatile var noiseSuppressionEnabled: Boolean = true
-    @Volatile var echoCancellationEnabled: Boolean = true
+    @Volatile private var noiseSuppressionEnabledState: Boolean = true
+    @Volatile private var echoCancellationEnabledState: Boolean = true
     @Volatile private var noiseSuppressor: NoiseSuppressor? = null
     @Volatile private var echoCanceler: AcousticEchoCanceler? = null
     private val lifecycleLock = Any()
 
     fun setNoiseSuppressionEnabled(enabled: Boolean) {
-        noiseSuppressionEnabled = enabled
+        noiseSuppressionEnabledState = enabled
         runCatching { noiseSuppressor?.enabled = enabled }
     }
 
     fun setEchoCancellationEnabled(enabled: Boolean) {
-        echoCancellationEnabled = enabled
+        echoCancellationEnabledState = enabled
         runCatching { echoCanceler?.enabled = enabled }
     }
     private val encodedFrameCount = AtomicLong(0L)
@@ -357,12 +357,12 @@ class OpusMicrophoneCapture(
 
     private fun createAudioEffects(audioSessionId: Int): List<AudioEffect> = buildList {
         if (NoiseSuppressor.isAvailable()) {
-            createConfiguredEffect("noise suppressor", enabled = noiseSuppressionEnabled) {
+            createConfiguredEffect("noise suppressor", enabled = noiseSuppressionEnabledState) {
                 NoiseSuppressor.create(audioSessionId)
             }?.let { effect -> noiseSuppressor = effect; add(effect) }
         }
         if (AcousticEchoCanceler.isAvailable()) {
-            createConfiguredEffect("acoustic echo canceler", enabled = echoCancellationEnabled) {
+            createConfiguredEffect("acoustic echo canceler", enabled = echoCancellationEnabledState) {
                 AcousticEchoCanceler.create(audioSessionId)
             }?.let { effect -> echoCanceler = effect; add(effect) }
         }
