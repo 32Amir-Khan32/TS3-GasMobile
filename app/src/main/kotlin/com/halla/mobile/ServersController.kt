@@ -58,24 +58,24 @@ class ServersController(private val activity: MainActivity) {
         val prefs = activity.getSharedPreferences("HallaPrefs", Context.MODE_PRIVATE)
         val jsonStr = prefs.getString("saved_servers", null)
         if (jsonStr == null) {
-            // Primeira execução: o servidor oficial já vem pré-salvo, sem
-            // apelido — o app pergunta o nome na hora de conectar (o
-            // servidor também recusa apelidos em uso com name_in_use).
+            // A instalação começa sem servidores pré-configurados.
+            // O usuário adiciona os seus próprios servidores TeamSpeak.
             savedServers = JSONArray()
-            savedServers.put(JSONObject().apply {
-                put("name", MainActivity.OFFICIAL_SERVER_NAME)
-                put("nick", "")
-                put("host", MainActivity.OFFICIAL_SERVER_HOST)
-                put("port", MainActivity.OFFICIAL_SERVER_PORT)
-                put("pass", "")
-                put("identity_uid", "")
-                put("slots", "0/32")
-            })
         } else {
             try {
                 savedServers = JSONArray(jsonStr)
-                for (i in 0 until savedServers.length()) {
+                // Migração: remove o servidor Halla que versões antigas
+                // inseriam automaticamente. Não tocar nos outros favoritos.
+                for (i in savedServers.length() - 1 downTo 0) {
                     val server = savedServers.getJSONObject(i)
+                    val isLegacyHallaDefault =
+                        server.optString("name").equals("HALLA OFFICIAL SERVER", ignoreCase = true) &&
+                        server.optString("host") == "163.176.35.133" &&
+                        server.optInt("port", 9987) == 9987
+                    if (isLegacyHallaDefault) {
+                        savedServers.remove(i)
+                        continue
+                    }
                     val key = serverPasswordKey(server)
                     val legacy = server.optString("pass", "")
                     if (legacy.isNotEmpty()) HallaCore.storeSecret(activity, key, legacy)
@@ -226,10 +226,10 @@ class ServersController(private val activity: MainActivity) {
             
             setOnClickListener { view ->
                 val popup = PopupMenu(context, view)
-                popup.menu.add(activity.getString(R.string.channel_edit))
+                popup.menu.add(activity.getString(R.string.server_edit))
                 popup.menu.add(activity.getString(R.string.whisper_delete))
                 popup.setOnMenuItemClickListener { menuItem ->
-                    if (menuItem.title == activity.getString(R.string.channel_edit)) {
+                    if (menuItem.title == activity.getString(R.string.server_edit)) {
                         showServerFormDialog(srv)
                     } else if (menuItem.title == activity.getString(R.string.whisper_delete)) {
                         savedServers.remove(index)
@@ -386,7 +386,7 @@ class ServersController(private val activity: MainActivity) {
 
         val inputNick = HallaInputEditText(context).apply {
             hint = activity.getString(R.string.nickname_hint)
-            setText(editSrv?.optString("nick") ?: "HallaMobile")
+            setText(editSrv?.optString("nick") ?: "TS3-GasMObile")
         }
         dialogView.addView(inputNick)
 
