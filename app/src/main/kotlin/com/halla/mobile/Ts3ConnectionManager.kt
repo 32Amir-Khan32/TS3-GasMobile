@@ -55,9 +55,12 @@ object Ts3ConnectionManager {
                 speakersMuted = appContext.getSharedPreferences("HallaPrefs", Context.MODE_PRIVATE)
                     .getBoolean(HallaService.PREF_SPK_MUTED, false)
                 pttPressed = false
-                val player = OpusAudioPlayer(appContext)
-                player.start()
-                player.setMuted(speakersMuted)
+                val player = try {
+                    OpusAudioPlayer(appContext).also { it.start(); it.setMuted(speakersMuted) }
+                } catch (audioError: Throwable) {
+                    android.util.Log.w("TS3-GasMobile", "Audio playback unavailable; connecting without playback", audioError)
+                    null
+                }
                 audioPlayer = player
                 val mic = try {
                     OpusMicrophoneCapture(appContext) { error ->
@@ -93,6 +96,12 @@ object Ts3ConnectionManager {
                 )
             } catch (error: Throwable) {
                 connected = false
+                runCatching { client.close() }
+                runCatching { microphone?.close() }
+                runCatching { audioPlayer?.close() }
+                microphone = null
+                audioPlayer = null
+                if (session === client) session = null
                 onStatus(ConnectionStatus(ConnectionPhase.ERROR, error.message ?: error.javaClass.simpleName))
             }
         }
