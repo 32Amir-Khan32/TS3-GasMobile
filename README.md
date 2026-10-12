@@ -1,17 +1,16 @@
 <p align="center">
-  <img src="https://i.imgur.com/eJFWf5w.png" width="110" alt="Halla Mobile" />
+  <img src="https://i.imgur.com/eJFWf5w.png" width="110" alt="TS3-GasMObile" />
 </p>
 
-<h1 align="center">Halla Mobile</h1>
+<h1 align="center">TS3-GasMObile</h1>
 
 <p align="center">
-  Native Android client for <a href="https://github.com/GroupHalla/Halla">Halla</a> —
-  the TeamSpeak 3-style desktop voice client. Kotlin for the interface,
-  C++/JNI for the network and voice core.
+  Independent Android voice-client project derived from Halla Mobile. Kotlin UI,
+  C++/JNI network and voice core. **TeamSpeak 3 server compatibility is not implemented yet; the current core speaks the Halla protocol.**
 </p>
 
 <p align="center">
-  <b>com.halla.mobile</b> · Android 8.0+ (API 26)
+  <b>com.gasmobile.ts3</b> · Android 8.0+ (API 26)
 </p>
 
 ---
