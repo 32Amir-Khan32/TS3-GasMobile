@@ -621,6 +621,86 @@ class ServersController(private val activity: MainActivity) {
             .show()
     }
 
+
+    private fun startTs3Connection(host: String, port: Int, nick: String, password: String) {
+        val latestSnapshot = java.util.concurrent.atomic.AtomicReference(
+            io.github.ts3mobile.protocol.SessionSnapshot.Empty
+        )
+        val connected = java.util.concurrent.atomic.AtomicBoolean(false)
+        Ts3ConnectionManager.connect(
+            activity, host, port, nick, password,
+            onStatus = { status ->
+                when (status.phase) {
+                    io.github.ts3mobile.protocol.ConnectionPhase.CONNECTED -> {
+                        val first = connected.compareAndSet(false, true)
+                        activity.runOnUiThread {
+                            if (first) activity.onConnected(host, "TeamSpeak 3")
+                            renderTs3Snapshot(latestSnapshot.get(), nick)
+                        }
+                    }
+                    io.github.ts3mobile.protocol.ConnectionPhase.ERROR -> {
+                        if (!connected.get()) activity.runOnUiThread {
+                            btnConnectStatusNormal()
+                            activity.txtError.text = status.detail ?: "TeamSpeak connection failed"
+                            activity.txtError.visibility = View.VISIBLE
+                        }
+                    }
+                    io.github.ts3mobile.protocol.ConnectionPhase.DISCONNECTED -> {
+                        if (connected.get()) activity.runOnUiThread {
+                            connected.set(false)
+                            activity.onDisconnected()
+                        }
+                    }
+                    else -> Unit
+                }
+            },
+            onSnapshot = { snapshot ->
+                latestSnapshot.set(snapshot)
+                if (connected.get()) activity.runOnUiThread { renderTs3Snapshot(snapshot, nick) }
+            }
+        )
+    }
+
+    private fun renderTs3Snapshot(
+        snapshot: io.github.ts3mobile.protocol.SessionSnapshot,
+        nickname: String
+    ) {
+        val usersByChannel = snapshot.participants.groupBy { it.channelId }
+        val channels = JSONArray()
+        for (channel in snapshot.channels) {
+            val channelUsers = JSONArray()
+            for (user in usersByChannel[channel.id].orEmpty()) {
+                channelUsers.put(JSONObject()
+                    .put("id", user.id).put("channel", user.channelId)
+                    .put("name", user.nickname).put("uid", user.uniqueIdentifier)
+                    .put("group", "Client").put("talking", user.isTalking)
+                    .put("muted", user.isInputMuted).put("deafened", user.isOutputMuted)
+                    .put("cc", false))
+            }
+            channels.put(JSONObject()
+                .put("id", channel.id).put("parent", channel.parentId)
+                .put("order", channel.orderAfterId).put("name", channel.name)
+                .put("users", channelUsers).put("desc", "")
+                .put("hasPassword", channel.hasPassword))
+        }
+        val users = JSONArray()
+        for (user in snapshot.participants) {
+            users.put(JSONObject()
+                .put("id", user.id).put("channel", user.channelId)
+                .put("name", user.nickname).put("uid", user.uniqueIdentifier)
+                .put("group", "Client").put("talking", user.isTalking)
+                .put("muted", user.isInputMuted).put("deafened", user.isOutputMuted)
+                .put("cc", false))
+        }
+        val selfId = snapshot.ownClientId
+            ?: snapshot.participants.firstOrNull { it.nickname == nickname }?.id ?: 0
+        val welcome = JSONObject()
+            .put("selfId", selfId).put("channels", channels).put("users", users)
+            .put("myPerms", JSONObject()).put("groups", JSONArray())
+            .put("server", JSONObject().put("maxClients", 32))
+        activity.onWelcomeReceived(welcome.toString())
+    }
+
     private fun connectToSavedServerWithNick(srv: JSONObject, nick: String) {
         val host = srv.getString("host")
         val port = srv.getInt("port")
@@ -648,9 +728,7 @@ class ServersController(private val activity: MainActivity) {
         } else {
             activity.getOrCreateClientUid()
         }
-        connectAfterTlsConfirmation(host, port) {
-            HallaService.start(activity, host, port, nick, pass, uid)
-        }
+        startTs3Connection(host, port, nick, pass)
 
         activity.connectionTimeoutRunnable?.let { activity.handler.removeCallbacks(it) }
         activity.connectionTimeoutRunnable = Runnable {
@@ -661,7 +739,7 @@ class ServersController(private val activity: MainActivity) {
                 activity.txtError.visibility = View.VISIBLE
             }
         }
-        activity.handler.postDelayed(activity.connectionTimeoutRunnable!!, 6000)
+        activity.handler.postDelayed(activity.connectionTimeoutRunnable!!, 20000)
     }
 
     internal fun connectToQuickServer() {
@@ -697,9 +775,7 @@ class ServersController(private val activity: MainActivity) {
                 break
             }
         }
-        connectAfterTlsConfirmation(host, port) {
-            HallaService.start(activity, host, port, nick, pass, uid)
-        }
+        startTs3Connection(host, port, nick, pass)
     }
 
     internal fun btnConnectStatusNormal() {
@@ -714,90 +790,29 @@ class ServersController(private val activity: MainActivity) {
         activity.btnQuickConnect.text = "⏳"
     }
 
-    // Consulta de disponibilidade e de vagas reais em segundo plano. A
-    // mensagem server_probe não autentica nem cria uma sessão, portanto não
-    // altera o contador de clientes do servidor.
+    // TS3 has no Halla TLS/server_probe endpoint. Check TCP reachability only;
+    // actual slot counts are updated after a successful TS3 session.
     private fun pingServersInBackground(onFinished: (() -> Unit)? = null) {
         val total = savedServers.length()
-        if (total == 0) {
-            onFinished?.invoke()
-            return
-        }
-
+        if (total == 0) { onFinished?.invoke(); return }
         val remaining = AtomicInteger(total)
         fun finish() {
-            if (remaining.decrementAndGet() == 0) {
-                activity.runOnUiThread { onFinished?.invoke() }
-            }
+            if (remaining.decrementAndGet() == 0) activity.runOnUiThread { onFinished?.invoke() }
         }
-
         for (i in 0 until total) {
             val srv = savedServers.getJSONObject(i)
             val host = srv.optString("host", "")
             val port = srv.optInt("port", 9987)
-
             thread {
-                var socket: SSLSocket? = null
+                var socket: java.net.Socket? = null
+                val started = android.os.SystemClock.elapsedRealtime()
                 try {
-                    val trustAll = object : X509TrustManager {
-                        override fun checkClientTrusted(chain: Array<out X509Certificate>?, authType: String?) = Unit
-                        override fun checkServerTrusted(chain: Array<out X509Certificate>?, authType: String?) = Unit
-                        override fun getAcceptedIssuers(): Array<X509Certificate> = emptyArray()
-                    }
-                    val sslContext = SSLContext.getInstance("TLS")
-                    sslContext.init(null, arrayOf(trustAll), SecureRandom())
-                    socket = sslContext.socketFactory.createSocket() as SSLSocket
-                    socket.soTimeout = 1800
-                    socket.connect(java.net.InetSocketAddress(host, port), 1800)
-                    socket.startHandshake()
-
-                    val cert = socket.session.peerCertificates.firstOrNull()?.encoded
-                        ?: throw SecurityException("Servidor sem certificado TLS")
-                    val fp = MessageDigest.getInstance("SHA-256")
-                        .digest(cert)
-                        .joinToString("") { "%02x".format(it.toInt() and 0xff) }
-                    val pins = activity.getSharedPreferences("HallaTlsPins", Context.MODE_PRIVATE)
-                    val pinKey = "$host:$port"
-                    val saved = pins.getString(pinKey, null)
-                    // O probe não envia credenciais e não fixa confiança. No
-                    // primeiro contato ele pode confirmar que o serviço está
-                    // online; a entrada continua exigindo confirmação explícita
-                    // do fingerprint. Pins já conhecidos ainda são verificados.
-                    if (saved != null && saved != fp) {
-                        throw SecurityException("Fingerprint TLS mudou")
-                    }
-
-                    // O ping exibido deve representar a latência até o servidor,
-                    // não o custo local de DNS, conexão TCP e handshake TLS. O
-                    // cronômetro começa somente com o túnel TLS já estabelecido.
-                    val probeStartedAt = android.os.SystemClock.elapsedRealtimeNanos()
-                    socket.getOutputStream().write("{\"t\":\"server_probe\"}\n".toByteArray(Charsets.UTF_8))
-                    socket.getOutputStream().flush()
-
-                    val line = socket.getInputStream().bufferedReader().readLine()
-                    val elapsedNanos = android.os.SystemClock.elapsedRealtimeNanos() - probeStartedAt
-                    val elapsed = ((elapsedNanos + 500_000L) / 1_000_000L)
-                        .coerceAtLeast(1L)
-                    val response = if (!line.isNullOrBlank()) JSONObject(line) else null
-                    val server = response?.optJSONObject("server")
-                    val clients = response?.optInt("clients", -1) ?: -1
-                    val maxClients = response?.optInt("maxClients", -1)
-                        ?: server?.optInt("maxClients", -1)
-                        ?: -1
-
-                    activity.runOnUiThread {
-                        updateServerProbeOnUI(
-                            i,
-                            "${elapsed}ms",
-                            true,
-                            clients.takeIf { it >= 0 },
-                            maxClients.takeIf { it > 0 }
-                        )
-                    }
+                    socket = java.net.Socket()
+                    socket.connect(java.net.InetSocketAddress(host, port), 2500)
+                    val elapsed = (android.os.SystemClock.elapsedRealtime() - started).coerceAtLeast(1)
+                    activity.runOnUiThread { updateServerProbeOnUI(i, "${elapsed}ms", true, null, null) }
                 } catch (_: Exception) {
-                    activity.runOnUiThread {
-                        updateServerProbeOnUI(i, activity.getString(R.string.offline), false, null, null)
-                    }
+                    activity.runOnUiThread { updateServerProbeOnUI(i, activity.getString(R.string.offline), false, null, null) }
                 } finally {
                     try { socket?.close() } catch (_: Exception) { }
                     finish()
