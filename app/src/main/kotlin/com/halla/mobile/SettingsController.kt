@@ -133,7 +133,9 @@ class SettingsController(private val activity: MainActivity) {
                         val prefs = activity.getSharedPreferences("HallaSettings", Context.MODE_PRIVATE)
                         prefs.edit().putInt("transmission_mode", which).apply()
                         activity.audioManager.transmissionMode = which
-                        if (HallaService.isRunning()) HallaService.setTransmissionMode(activity, which)
+                        if (HallaService.isRunning() || Ts3ConnectionManager.isConnected()) {
+                            HallaService.setTransmissionMode(activity, which)
+                        }
                         updatePttOptionsVisibility()
                         text = when (which) {
                             1 -> activity.getString(R.string.push_to_talk_mode)
@@ -1079,7 +1081,7 @@ class SettingsController(private val activity: MainActivity) {
         // A captura pertence ao foreground service quando há uma conexão.
         // Enviar a alteração para ele evita que os switches alterem apenas o
         // AudioManager da Activity, que não é o microfone em uso.
-        if (HallaService.isRunning()) {
+        if (HallaService.isRunning() || Ts3ConnectionManager.isConnected()) {
             HallaService.setAudioProcessing(activity, noise, echo)
         }
     }
@@ -1096,6 +1098,8 @@ class SettingsController(private val activity: MainActivity) {
         seekMicBoost.progress = micDb
         txtMicBoostVal.text = formatMicBoost(micDb)
         activity.audioManager.micGainDb = micDb
+        if (Ts3ConnectionManager.isConnected()) Ts3ConnectionManager.setMicGainDb(micDb)
+        if (Ts3ConnectionManager.isConnected()) Ts3ConnectionManager.setVoiceSensitivity(vadSens)
         switchNoiseSuppression.isChecked = settingsPrefs.getBoolean("noise_suppression", true)
         switchEchoCancellation.isChecked = settingsPrefs.getBoolean("echo_cancellation", true)
         pushAudioProcessingSettings()
@@ -1111,6 +1115,7 @@ class SettingsController(private val activity: MainActivity) {
             else -> activity.getString(R.string.voice_activation_mode)
         }
         activity.audioManager.vadThreshold = vadSens * 3.0
+        if (Ts3ConnectionManager.isConnected()) Ts3ConnectionManager.setVoiceSensitivity(vadSens)
         activity.txtPttText.text = activity.getString(R.string.talk)
         updatePttOptionsVisibility()
 
@@ -1126,6 +1131,7 @@ class SettingsController(private val activity: MainActivity) {
                 txtVadSensitivityVal.text = "$progress%"
                 settingsPrefs.edit().putInt("vad_sensitivity", progress).apply()
                 activity.audioManager.vadThreshold = progress * 3.0
+                if (Ts3ConnectionManager.isConnected()) Ts3ConnectionManager.setVoiceSensitivity(progress)
             }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
@@ -1137,7 +1143,9 @@ class SettingsController(private val activity: MainActivity) {
                 // Aplica na hora no AudioManager da Activity E no foreground
                 // service (o microfone em uso durante a sessão é o dele).
                 activity.audioManager.micGainDb = progress
-                if (HallaService.isRunning()) HallaService.setMicGain(activity, progress)
+                if (HallaService.isRunning() || Ts3ConnectionManager.isConnected()) {
+                    HallaService.setMicGain(activity, progress)
+                }
             }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
@@ -1145,7 +1153,7 @@ class SettingsController(private val activity: MainActivity) {
         switchNoiseSuppression.setOnCheckedChangeListener { _, isChecked ->
             settingsPrefs.edit().putBoolean("noise_suppression", isChecked).apply()
             activity.audioManager.setNoiseSuppressionEnabled(isChecked)
-            if (HallaService.isRunning()) {
+            if (HallaService.isRunning() || Ts3ConnectionManager.isConnected()) {
                 HallaService.setAudioProcessing(
                     activity,
                     isChecked,
@@ -1156,7 +1164,7 @@ class SettingsController(private val activity: MainActivity) {
         switchEchoCancellation.setOnCheckedChangeListener { _, isChecked ->
             settingsPrefs.edit().putBoolean("echo_cancellation", isChecked).apply()
             activity.audioManager.setEchoCancellationEnabled(isChecked)
-            if (HallaService.isRunning()) {
+            if (HallaService.isRunning() || Ts3ConnectionManager.isConnected()) {
                 HallaService.setAudioProcessing(
                     activity,
                     switchNoiseSuppression.isChecked,
