@@ -439,7 +439,7 @@ class Ts3jSessionClient : Ts3SessionClient {
         clientCount = 0,
         hasPassword = booleanValue("channel_flag_password") ?: false,
         isDefault = booleanValue("channel_flag_default") ?: false,
-        topic = get("channel_topic")?.ts3Unescape() ?: topic,
+        topic = get("channel_topic").orEmpty().ts3Unescape(),
     )
 
     private fun ClientJoinEvent.toParticipant() = Ts3Participant(
@@ -458,6 +458,7 @@ class Ts3jSessionClient : Ts3SessionClient {
         name = values["channel_name"] ?: name,
         hasPassword = values.booleanValue("channel_flag_password") ?: hasPassword,
         isDefault = values.booleanValue("channel_flag_default") ?: isDefault,
+        topic = values["channel_topic"]?.ts3Unescape() ?: topic,
     )
 
     private fun Ts3Participant.withUpdates(values: Map<String, String>) = copy(
