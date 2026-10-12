@@ -22,7 +22,7 @@ android {
     ndkVersion = "25.2.9519653"
 
     defaultConfig {
-        applicationId = "com.halla.mobile"
+        applicationId = "com.gasmobile.ts3"
         minSdk = 26
         targetSdk = 34
         versionCode = hallaVersionCode
