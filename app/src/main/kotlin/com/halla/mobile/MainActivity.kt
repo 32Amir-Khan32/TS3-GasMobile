@@ -473,7 +473,7 @@ class MainActivity : AppCompatActivity(), HallaCore.Callbacks {
 
         // Módulos do Dock Flutuante Inferior (Filtros de Cores Vetoriais de acordo com o mockup)
         btnMuteMicModule.setOnClickListener {
-            isMuted = !isMuted
+            isMuted = isDeaf || !isMuted
             if (HallaService.isRunning() || Ts3ConnectionManager.isConnected()) {
                 HallaService.setMicMuted(this, isMuted)
             } else {
@@ -716,6 +716,8 @@ class MainActivity : AppCompatActivity(), HallaCore.Callbacks {
         val prefs = getSharedPreferences("HallaPrefs", Context.MODE_PRIVATE)
         isMuted = prefs.getBoolean(HallaService.PREF_MIC_MUTED, isMuted)
         isDeaf = prefs.getBoolean(HallaService.PREF_SPK_MUTED, isDeaf)
+        micMutedBeforeDeafen = isMuted
+        if (isDeaf) isMuted = true
         isAway = prefs.getBoolean(HallaService.PREF_AWAY, isAway)
         isChannelCommander = prefs.getBoolean(HallaService.PREF_COMMANDER, isChannelCommander)
         imgMicIcon.setImageResource(if (isMuted) R.drawable.ic_mic_mute else R.drawable.ic_mic)
