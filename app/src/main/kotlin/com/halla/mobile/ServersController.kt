@@ -18,13 +18,6 @@ import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import org.json.JSONArray
 import org.json.JSONObject
-import java.io.File
-import java.security.MessageDigest
-import java.security.SecureRandom
-import java.security.cert.X509Certificate
-import javax.net.ssl.SSLContext
-import javax.net.ssl.SSLSocket
-import javax.net.ssl.X509TrustManager
 import kotlin.concurrent.thread
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -504,73 +497,6 @@ class ServersController(private val activity: MainActivity) {
         dialog.show()
     }
 
-    private fun tlsPinFile(host: String, port: Int): File {
-        val safeHost = host.map { ch ->
-            if (ch.isLetterOrDigit() || ch == '.' || ch == '-' || ch == '_') ch else '_'
-        }.joinToString("")
-        return File(File(activity.noBackupFilesDir, "tls-pins").apply { mkdirs() },
-            "tls_fingerprint_${safeHost}_${port}.txt")
-    }
-
-    private fun connectAfterTlsConfirmation(host: String, port: Int, connect: () -> Unit) {
-        thread {
-            var socket: SSLSocket? = null
-            try {
-                val trustAll = object : X509TrustManager {
-                    override fun checkClientTrusted(chain: Array<out X509Certificate>?, authType: String?) = Unit
-                    override fun checkServerTrusted(chain: Array<out X509Certificate>?, authType: String?) = Unit
-                    override fun getAcceptedIssuers(): Array<X509Certificate> = emptyArray()
-                }
-                val context = SSLContext.getInstance("TLS")
-                context.init(null, arrayOf(trustAll), SecureRandom())
-                socket = context.socketFactory.createSocket() as SSLSocket
-                socket.soTimeout = 5000
-                socket.connect(java.net.InetSocketAddress(host, port), 5000)
-                socket.startHandshake()
-                val cert = socket.session.peerCertificates.firstOrNull()?.encoded
-                    ?: throw SecurityException("Servidor sem certificado TLS")
-                val fingerprint = MessageDigest.getInstance("SHA-256").digest(cert)
-                    .joinToString("") { "%02x".format(it.toInt() and 0xff) }
-                activity.runOnUiThread {
-                    val pinFile = tlsPinFile(host, port)
-                    val legacyPins = activity.getSharedPreferences("HallaTlsPins", Context.MODE_PRIVATE)
-                    val saved = pinFile.takeIf { it.isFile }?.readText()?.trim()
-                        .orEmpty().ifEmpty { legacyPins.getString("$host:$port", "").orEmpty() }
-                    if (saved.isNotEmpty() && !saved.equals(fingerprint, ignoreCase = true)) {
-                        btnConnectStatusNormal()
-                        activity.txtError.text = "ALERTA: o fingerprint TLS de $host:$port mudou. Conexão recusada."
-                        activity.txtError.visibility = View.VISIBLE
-                        return@runOnUiThread
-                    }
-                    if (saved.equals(fingerprint, ignoreCase = true)) {
-                        if (!pinFile.isFile) pinFile.writeText(fingerprint)
-                        connect()
-                        return@runOnUiThread
-                    }
-                    val display = fingerprint.uppercase().chunked(2).joinToString(":")
-                    AlertDialog.Builder(activity)
-                        .setTitle("Confirmar certificado TLS")
-                        .setMessage("Primeiro contato com $host:$port. Compare o SHA-256 com o administrador antes de confiar:\n\n$display")
-                        .setNegativeButton(android.R.string.cancel) { _, _ -> btnConnectStatusNormal() }
-                        .setPositiveButton("Confiar") { _, _ ->
-                            pinFile.writeText(fingerprint)
-                            legacyPins.edit().putString("$host:$port", fingerprint).apply()
-                            connect()
-                        }
-                        .show()
-                }
-            } catch (e: Exception) {
-                activity.runOnUiThread {
-                    btnConnectStatusNormal()
-                    activity.txtError.text = "Falha ao validar TLS: ${e.message ?: "erro desconhecido"}"
-                    activity.txtError.visibility = View.VISIBLE
-                }
-            } finally {
-                try { socket?.close() } catch (_: Exception) { }
-            }
-        }
-    }
-
     private fun connectToSavedServer(srv: JSONObject) {
         val host = srv.getString("host")
         val port = srv.getInt("port")
@@ -640,6 +566,8 @@ class ServersController(private val activity: MainActivity) {
                     }
                     io.github.ts3mobile.protocol.ConnectionPhase.ERROR -> {
                         if (!connected.get()) activity.runOnUiThread {
+                            activity.connectionTimeoutRunnable?.let { activity.handler.removeCallbacks(it) }
+                            activity.connectionTimeoutRunnable = null
                             btnConnectStatusNormal()
                             activity.txtError.text = status.detail ?: "TeamSpeak connection failed"
                             activity.txtError.visibility = View.VISIBLE
