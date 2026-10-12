@@ -1,10 +1,12 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Halla</string>
+    <string name="app_name">TS3-GasMObile</string>
     <string name="empty_servers">No hay servidores guardados.
 Pulsa + para añadir uno.</string>
-    <string name="server_default">Servidor Halla</string>
-    <string name="server_motd">¡Bienvenido al servidor Halla!</string>
+    <string name="server_default">Nuevo servidor</string>
+    <string name="server_edit">Editar servidor</string>
+    <string name="invalid_port">Puerto inválido. Introduce un número entre 1 y 65535.</string>
+    <string name="server_motd">¡Bienvenido al servidor!</string>
     <string name="online">🟢 En línea</string>
     <string name="channels_voice">CANALES DE VOZ</string>
     <string name="search_channels">Buscar</string>
@@ -20,7 +22,7 @@ Pulsa + para añadir uno.</string>
     <string name="settings_general_title">Configuración general</string>
     <string name="settings_audio_title">Configuración de audio</string>
     <string name="settings_visual_title">Apariencia visual</string>
-    <string name="settings_about_title">Acerca de Halla Mobile</string>
+    <string name="settings_about_title">Acerca de TS3-GasMObile</string>
     <string name="settings_language">Idioma</string>
     <string name="language_system">Automático (idioma del teléfono)</string>
     <string name="language_portuguese">Portugués</string>
@@ -39,13 +41,13 @@ Pulsa + para añadir uno.</string>
     <string name="audio_filter_unavailable">no disponible</string>
     <string name="premium_dark_theme">Tema oscuro premium</string>
     <string name="show_room_badges">Mostrar contadores de salas</string>
-    <string name="about_description">Aplicación de comunicación por voz de alta fidelidad y baja latencia desarrollada por el equipo Halla.</string>
+    <string name="about_description">TS3-GasMObile es un proyecto independiente de cliente de voz. La compatibilidad con el protocolo de TeamSpeak 3 aún no está implementada.</string>
     <string name="check_updates">Buscar actualizaciones</string>
     <string name="help">Ayuda</string>
     <string name="menu_settings">⚙️   Configuración</string>
     <string name="menu_help">❓   Ayuda</string>
-    <string name="about_version">Halla Mobile %1$s</string>
-    <string name="auto_update_available">Hay una nueva versión de Halla Mobile (%1$s).
+    <string name="about_version">TS3-GasMObile %1$s</string>
+    <string name="auto_update_available">Hay una nueva versión de TS3-GasMObile (%1$s).
 
 Notas de la versión:
 %2$s
@@ -60,7 +62,7 @@ Notas de la versión:
     <string name="update_download_error">No se pudo descargar la actualización: %1$s</string>
     <string name="install_permission">Permite instalaciones desde esta fuente e inténtalo de nuevo.</string>
     <string name="installer_error">No se pudo abrir el instalador: %1$s</string>
-    <string name="fully_updated">Tu Halla Mobile %1$s está actualizado.</string>
+    <string name="fully_updated">Tu TS3-GasMObile %1$s está actualizado.</string>
     <string name="excellent">Excelente</string>
     <string name="mute_mic">Silenciar micrófono</string>
     <string name="unmute_mic">Activar micrófono</string>
