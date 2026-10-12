@@ -25,6 +25,7 @@ object Ts3ConnectionManager {
     @Volatile private var transmissionMode = 0
     @Volatile private var pttPressed = false
     @Volatile private var currentChannelId = 0
+    private val participantVolumeDb = java.util.concurrent.ConcurrentHashMap<Int, Int>()
     fun isConnected(): Boolean = connected
 
     fun connect(
@@ -147,6 +148,16 @@ object Ts3ConnectionManager {
     fun setSpeakersMuted(muted: Boolean) {
         speakersMuted = muted
         audioPlayer?.setMuted(muted)
+    }
+
+    fun setUserVolumeDb(userId: Int, volumeDb: Int) {
+        if (userId <= 0) return
+        val db = volumeDb.coerceIn(-60, 30)
+        if (db == 0) participantVolumeDb.remove(userId) else participantVolumeDb[userId] = db
+        val gains = participantVolumeDb.mapValues { (_, value) ->
+            Math.pow(10.0, value / 20.0).toFloat()
+        }
+        audioPlayer?.replaceParticipantGains(gains)
     }
 
     fun setPtt(pressed: Boolean) {

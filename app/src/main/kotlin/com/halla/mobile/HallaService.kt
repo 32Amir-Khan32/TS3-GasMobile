@@ -249,6 +249,10 @@ class HallaService : Service(), HallaCore.Callbacks {
         }
 
         fun setUserVolume(context: Context, userId: Int, volumeDb: Int) {
+            if (Ts3ConnectionManager.isConnected()) {
+                Ts3ConnectionManager.setUserVolumeDb(userId, volumeDb)
+                return
+            }
             context.startService(Intent(context, HallaService::class.java).apply {
                 action = ACTION_SET_USER_VOLUME
                 putExtra(EXTRA_USER_ID, userId)
