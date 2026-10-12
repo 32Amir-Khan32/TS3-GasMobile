@@ -471,8 +471,11 @@ class MainActivity : AppCompatActivity(), HallaCore.Callbacks {
         // Módulos do Dock Flutuante Inferior (Filtros de Cores Vetoriais de acordo com o mockup)
         btnMuteMicModule.setOnClickListener {
             isMuted = !isMuted
-            if (HallaService.isRunning()) HallaService.setMicMuted(this, isMuted)
-            else audioManager.setTransmitEnabled(!isMuted)
+            if (HallaService.isRunning() || Ts3ConnectionManager.isConnected()) {
+                HallaService.setMicMuted(this, isMuted)
+            } else {
+                audioManager.setTransmitEnabled(!isMuted)
+            }
             imgMicIcon.setImageResource(if (isMuted) R.drawable.ic_mic_mute else R.drawable.ic_mic)
             txtMicText.text = if (isMuted) getString(R.string.unmute_mic) else getString(R.string.mute_mic)
             applyDockBubbleState(btnMuteMicModule, imgMicIcon, txtMicText, isMuted)
@@ -481,8 +484,11 @@ class MainActivity : AppCompatActivity(), HallaCore.Callbacks {
 
         btnDeafenModule.setOnClickListener {
             isDeaf = !isDeaf
-            if (HallaService.isRunning()) HallaService.setSpeakersMuted(this, isDeaf)
-            else audioManager.setSpeakersEnabled(!isDeaf)
+            if (HallaService.isRunning() || Ts3ConnectionManager.isConnected()) {
+                HallaService.setSpeakersMuted(this, isDeaf)
+            } else {
+                audioManager.setSpeakersEnabled(!isDeaf)
+            }
             imgDeafenIcon.setImageResource(if (isDeaf) R.drawable.ic_deafen_mute else R.drawable.ic_headphones)
             txtDeafenText.text = if (isDeaf) getString(R.string.unmute_speakers) else getString(R.string.speakers)
             applyDockBubbleState(btnDeafenModule, imgDeafenIcon, txtDeafenText, isDeaf)
@@ -490,12 +496,16 @@ class MainActivity : AppCompatActivity(), HallaCore.Callbacks {
             if (isDeaf) {
                 // Ao mutar os fones, o microfone é mutado também.
                 isMuted = true
-                if (!HallaService.isRunning()) audioManager.setTransmitEnabled(false)
+                if (HallaService.isRunning() || Ts3ConnectionManager.isConnected()) {
+                    HallaService.setMicMuted(this, true)
+                } else {
+                    audioManager.setTransmitEnabled(false)
+                }
                 imgMicIcon.setImageResource(R.drawable.ic_mic_mute)
                 txtMicText.text = getString(R.string.unmute_mic)
                 applyDockBubbleState(btnMuteMicModule, imgMicIcon, txtMicText, true)
             }
-            if (!HallaService.isRunning()) {
+            if (!HallaService.isRunning() && !Ts3ConnectionManager.isConnected()) {
                 HallaCore.sendStatus(isMuted, isDeaf, isAway, false, isChannelCommander)
             }
         }
@@ -505,14 +515,20 @@ class MainActivity : AppCompatActivity(), HallaCore.Callbacks {
             if (mode == 1) { // PTT mode
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> {
-                        if (HallaService.isRunning()) HallaService.setPtt(this, true)
-                        else audioManager.isPttPressed = true
+                        if (HallaService.isRunning() || Ts3ConnectionManager.isConnected()) {
+                            HallaService.setPtt(this, true)
+                        } else {
+                            audioManager.isPttPressed = true
+                        }
                         txtPttText.text = getString(R.string.talking)
                         setPttButtonBackground(Color.parseColor("#16A34A"))
                     }
                     MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                        if (HallaService.isRunning()) HallaService.setPtt(this, false)
-                        else audioManager.isPttPressed = false
+                        if (HallaService.isRunning() || Ts3ConnectionManager.isConnected()) {
+                            HallaService.setPtt(this, false)
+                        } else {
+                            audioManager.isPttPressed = false
+                        }
                         txtPttText.text = getString(R.string.talk)
                         setPttButtonBackground(Color.parseColor("#7C3AED"))
                     }
