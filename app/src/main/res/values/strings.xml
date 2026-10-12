@@ -3,11 +3,12 @@
     <string name="app_name">TS3-GasMObile</string>
     <string name="empty_servers">Nenhum servidor salvo.
 Toque em + para adicionar.</string>
-    <string name="server_default">Servidor Halla</string>
-    <string name="server_motd">Bem-vindo ao servidor Halla!</string>
+    <string name="server_default">Novo servidor</string>
+    <string name="server_edit">Editar servidor</string>
+    <string name="server_motd">Bem-vindo ao servidor</string>
     <string name="online">🟢 Online</string>
     <string name="members_initial">👤 0 membros</string>
-    <string name="about_version_static">Halla Mobile</string>
+    <string name="about_version_static">TS3-GasMObile</string>
     <string name="record_static">Gravar</string>
     <string name="channels_voice">CANAIS DE VOZ</string>
     <string name="search_channels">Buscar</string>
@@ -23,7 +24,7 @@ Toque em + para adicionar.</string>
     <string name="settings_general_title">Configurações gerais</string>
     <string name="settings_audio_title">Configurações de áudio</string>
     <string name="settings_visual_title">Aparência visual</string>
-    <string name="settings_about_title">Sobre o Halla Mobile</string>
+    <string name="settings_about_title">Sobre o TS3-GasMObile</string>
     <string name="settings_language">Idioma</string>
     <string name="language_system">Automático (idioma do celular)</string>
     <string name="language_portuguese">Português</string>
