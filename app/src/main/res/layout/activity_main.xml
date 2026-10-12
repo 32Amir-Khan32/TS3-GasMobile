@@ -9,14 +9,14 @@
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#0B0C10">
+        android:background="#172B3A">
 
         <!-- Barra Superior (Top Bar) -->
         <RelativeLayout
             android:id="@+id/topAppBar"
             android:layout_width="match_parent"
             android:layout_height="72dp"
-            android:background="#0B0C10"
+            android:background="#172B3A"
             android:paddingStart="12dp"
             android:paddingEnd="12dp">
 
@@ -29,7 +29,7 @@
                 android:layout_centerVertical="true"
                 android:background="@drawable/ic_menu" />
 
-            <!-- Logo oficial + título do Halla -->
+            <!-- TS3-GasMObile branding -->
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
@@ -42,7 +42,7 @@
                     android:layout_width="60dp"
                     android:layout_height="60dp"
                     android:layout_marginEnd="12dp"
-                    android:src="@drawable/halla_logo" />
+                    android:src="@drawable/ts3_gasmobile_logo" />
 
                 <TextView
                     android:id="@+id/txtAppTitle"
@@ -188,7 +188,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_below="@+id/topAppBar"
-            android:background="#0B0C10"
+            android:background="#172B3A"
             android:visibility="gone">
 
             <!-- Card de Destaque do Servidor: card compacto único com gradiente, -->
@@ -779,7 +779,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_below="@+id/topAppBar"
-            android:background="#0B0C10"
+            android:background="#172B3A"
             android:visibility="gone">
 
             <!-- Top Bar -->
@@ -787,7 +787,7 @@
                 android:id="@+id/settingsTopBar"
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
-                android:background="#0B0C10"
+                android:background="#172B3A"
                 android:paddingStart="12dp"
                 android:paddingEnd="12dp">
 
