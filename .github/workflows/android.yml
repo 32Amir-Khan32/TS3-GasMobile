@@ -52,8 +52,8 @@ jobs:
         if: github.ref_type != 'tag'
         run: |
           ./gradlew --no-daemon assembleDebug
-          cp app/build/outputs/apk/debug/app-debug.apk HallaMobile-debug.apk
-          sha256sum HallaMobile-debug.apk > HallaMobile-debug.apk.sha256
+          cp app/build/outputs/apk/debug/app-debug.apk TS3-GasMObile-debug.apk
+          sha256sum TS3-GasMObile-debug.apk > TS3-GasMObile-debug.apk.sha256
 
       - name: Decode release keystore
         if: github.ref_type == 'tag'
@@ -80,11 +80,11 @@ jobs:
           HALLA_ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: |
           ./gradlew --no-daemon -PrequireReleaseSigning=true assembleRelease
-          cp app/build/outputs/apk/release/app-release.apk HallaMobile.apk
+          cp app/build/outputs/apk/release/app-release.apk TS3-GasMObile.apk
           APKSIGNER="$(find "$ANDROID_SDK_ROOT/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
           [[ -x "$APKSIGNER" ]] || { echo "apksigner not found under $ANDROID_SDK_ROOT/build-tools" >&2; exit 1; }
-          "$APKSIGNER" verify --verbose --print-certs HallaMobile.apk
-          sha256sum HallaMobile.apk > HallaMobile.apk.sha256
+          "$APKSIGNER" verify --verbose --print-certs TS3-GasMObile.apk
+          sha256sum TS3-GasMObile.apk > TS3-GasMObile.apk.sha256
 
       # Bibliotecas do complemento oficial "Voz de rádio policial" para o
       # pacote .halla-addon do catálogo (Halla-Addons). Não entram no APK: o
@@ -128,22 +128,22 @@ jobs:
         if: github.ref_type != 'tag'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: halla-mobile-debug-${{ github.sha }}
+          name: ts3-gasmobile-debug-${{ github.sha }}
           if-no-files-found: error
           retention-days: 14
           path: |
-            HallaMobile-debug.apk
-            HallaMobile-debug.apk.sha256
+            TS3-GasMObile-debug.apk
+            TS3-GasMObile-debug.apk.sha256
 
       - name: Upload signed release artifact
         if: github.ref_type == 'tag'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: halla-mobile-release
+          name: ts3-gasmobile-release
           if-no-files-found: error
           path: |
-            HallaMobile.apk
-            HallaMobile.apk.sha256
+            TS3-GasMObile.apk
+            TS3-GasMObile.apk.sha256
 
   release:
     if: github.ref_type == 'tag'
@@ -155,16 +155,16 @@ jobs:
       - name: Download signed APK
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: halla-mobile-release
+          name: ts3-gasmobile-release
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           tag_name: ${{ github.ref_name }}
-          name: Halla Mobile ${{ github.ref_name }}
+          name: TS3-GasMObile ${{ github.ref_name }}
           draft: false
           prerelease: false
           generate_release_notes: true
           files: |
-            HallaMobile.apk
-            HallaMobile.apk.sha256
+            TS3-GasMObile.apk
+            TS3-GasMObile.apk.sha256
