@@ -13,5 +13,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "HallaMobile"
+rootProject.name = "TS3-GasMObile"
 include(":app")
