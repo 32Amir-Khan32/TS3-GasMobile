@@ -11,6 +11,7 @@ import android.media.MediaRecorder
 import android.media.audiofx.AcousticEchoCanceler
 import android.media.audiofx.AudioEffect
 import android.media.audiofx.AutomaticGainControl
+import android.media.audiofx.NoiseSuppressor
 import android.os.Process
 import io.github.ts3mobile.protocol.EncodedVoiceSource
 import java.util.concurrent.ArrayBlockingQueue
@@ -27,6 +28,10 @@ class OpusMicrophoneCapture(
     private val encodedFrames = ArrayBlockingQueue<ByteArray>(ENCODED_QUEUE_CAPACITY)
 
     @Volatile var transmissionEnabled: Boolean = true
+        set(value) {
+            field = value
+            if (!value) encodedFrames.clear()
+        }
     @Volatile var voiceActivationEnabled: Boolean = false
     @Volatile var voiceActivationThreshold: Double = 650.0
     private val lifecycleLock = Any()
@@ -326,6 +331,11 @@ class OpusMicrophoneCapture(
     }
 
     private fun createAudioEffects(audioSessionId: Int): List<AudioEffect> = buildList {
+        if (NoiseSuppressor.isAvailable()) {
+            createConfiguredEffect("noise suppressor", enabled = true) {
+                NoiseSuppressor.create(audioSessionId)
+            }?.let(::add)
+        }
         if (AcousticEchoCanceler.isAvailable()) {
             createConfiguredEffect("acoustic echo canceler", enabled = true) {
                 AcousticEchoCanceler.create(audioSessionId)
